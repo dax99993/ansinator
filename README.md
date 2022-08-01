@@ -20,10 +20,10 @@ cargo install ansinator
 ```
 
 #### Manual Installation:
-you can clone **tai** repo and build it locally
+you can clone **ansinator** repo and build it locally
 ```sh
 git clone https://github.com/dax99993/ansinator
-cd tai
+cd ansinator 
 cargo install --path .
 ```
 
