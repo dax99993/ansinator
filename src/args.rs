@@ -23,6 +23,8 @@ pub enum AnsinatorCommands {
     Braile(Braile),
     /// Convert image to approximate low resolution blocks
     Block(Block),
+    /// Convert image to unicode blocks
+    Uniblock(Uniblock),
 }
 
 #[derive(Debug, Args)]
@@ -50,6 +52,20 @@ pub struct Ascii {
     /// Use underline style
     #[clap(short, long)]
     pub underline: bool,
+    /// Set foreground color RGB [0-255 each channel]
+    #[clap(short = 'F', long)]
+    #[clap(number_of_values = 3)]
+    #[clap(value_names = &["R", "G", "B"])]
+    #[clap(conflicts_with = "termcolor")]
+    #[clap(conflicts_with = "rgbcolor")]
+    pub frgdcolor: Vec<u8>,
+    /// Set background color RGB [0-255 each channel]
+    #[clap(short = 'B', long)]
+    #[clap(number_of_values = 3)]
+    #[clap(value_names = &["R", "G", "B"])]
+    #[clap(conflicts_with = "termcolor")]
+    #[clap(conflicts_with = "rgbcolor")]
+    pub bkgdcolor: Vec<u8>,
     /// Use true color (24-bit) color space
     #[clap(short, long)]
     #[clap(conflicts_with = "termcolor")]
@@ -64,6 +80,18 @@ pub struct Ascii {
     /// Prevent convertion from printing out to stdout
     #[clap(short, long)]
     pub noecho: bool,
+    /// Adjust the contrast of image. 
+    /// Negative values decrease the contrast and positive values increase it.
+    #[clap(long = "set-contrast")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0.0)]
+    pub contrast: f32,
+    /// Brighten the pixels of image.
+    /// Negative values decrease the brightness and positive values increase it.
+    #[clap(long = "set-brightness")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0)]
+    pub brightness: i32,
     /// Resize image width
     /// [-W 0  keeps vertical aspect ratio]
     #[clap(short = 'W', long)]
@@ -129,6 +157,18 @@ pub struct Braile {
     /// Set manual threshold image [0-255]
     #[clap(short = 't', long = "set-threshold")]
     pub threshold: Vec<u8>,
+    /// Adjust the contrast of image. 
+    /// Negative values decrease the contrast and positive values increase it.
+    #[clap(long = "set-contrast")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0.0)]
+    pub contrast: f32,
+    /// Brighten the pixels of image.
+    /// Negative values decrease the brightness and positive values increase it.
+    #[clap(long = "set-brightness")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0)]
+    pub brightness: i32,
     /// Resize image width
     /// [-W 0  keeps horizontal aspect ratio]
     #[clap(short = 'W', long)]
@@ -181,6 +221,95 @@ pub struct Block {
     /// Use 256 terminal colors (8-bit) color space
     #[clap(short, long)]
     pub termcolor: bool,
+    /// Adjust the contrast of image. 
+    /// Negative values decrease the contrast and positive values increase it.
+    #[clap(long = "set-contrast")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0.0)]
+    pub contrast: f32,
+    /// Brighten the pixels of image.
+    /// Negative values decrease the brightness and positive values increase it.
+    #[clap(long = "set-brightness")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0)]
+    pub brightness: i32,
+    /// Resize image width
+    /// [-W 0  keeps horizontal aspect ratio]
+    #[clap(short = 'W', long)]
+    #[clap(default_value_t = 0)]
+    pub width: u32,
+    /// Resize image height
+    /// [-H 0  keeps vertical aspect ratio]
+    #[clap(short = 'H', long)]
+    #[clap(default_value_t = 0)]
+    pub height: u32,
+    /// Perform resampling with catmullrom filter
+    #[clap(long = "filter-catmullrom")]
+    #[clap(conflicts_with_all = &["filter-gaussian", "filter-lanczos", 
+                                  "filter-nearest", "filter-triangle"])]
+    pub filter_catmullrom: bool,
+    #[clap(long = "filter-gaussian")]
+    #[clap(conflicts_with_all = &["filter-lanczos", 
+                                  "filter-nearest", "filter-triangle"])]
+    pub filter_gaussian: bool,
+    #[clap(long = "filter-lanczos")]
+    #[clap(conflicts_with_all = &["filter-nearest", "filter-triangle"])]
+    pub filter_lanczos: bool,
+    #[clap(long = "filter-nearest")]
+    #[clap(conflicts_with_all = &["filter-triangle"])]
+    pub filter_nearest: bool,
+    #[clap(long = "filter-triangle")]
+    pub filter_triangle: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct Uniblock {
+    /// Input image
+    pub image: String,
+    /// Save convertion to file
+    #[clap(short = 'o', long)]
+    #[clap(value_name = "OUTPUT FILE")]
+    pub output: Vec<String>,
+    /// Invert image colors
+    #[clap(short = 'i', long)]
+    pub invert: bool,
+    /// Use bold style
+    #[clap(short = 'b', long)]
+    pub bold: bool,
+    /// Use blink style
+    #[clap(short = 'k', long)]
+    pub blink: bool,
+    /// Set foreground color RGB [0-255 each channel]
+    #[clap(short = 'F', long)]
+    #[clap(number_of_values = 3)]
+    #[clap(value_names = &["R", "G", "B"])]
+    pub frgdcolor: Vec<u8>,
+    /// Set background color RGB [0-255 each channel]
+    #[clap(short = 'B', long)]
+    #[clap(number_of_values = 3)]
+    #[clap(value_names = &["R", "G", "B"])]
+    pub bkgdcolor: Vec<u8>,
+    /// Resize image to fit in current terminal size
+    #[clap(short, long)]
+    pub fullscreen: bool,
+    /// Prevent convertion from printing out to stdout
+    #[clap(short, long)]
+    pub noecho: bool,
+    /// Set manual threshold image [0-255]
+    #[clap(short = 't', long = "set-threshold")]
+    pub threshold: Vec<u8>,
+    /// Adjust the contrast of image. 
+    /// Negative values decrease the contrast and positive values increase it.
+    #[clap(long = "set-contrast")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0.0)]
+    pub contrast: f32,
+    /// Brighten the pixels of image.
+    /// Negative values decrease the brightness and positive values increase it.
+    #[clap(long = "set-brightness")]
+    #[clap(allow_hyphen_values= true)]
+    #[clap(default_value_t = 0)]
+    pub brightness: i32,
     /// Resize image width
     /// [-W 0  keeps horizontal aspect ratio]
     #[clap(short = 'W', long)]

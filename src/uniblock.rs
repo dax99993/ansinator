@@ -1,4 +1,4 @@
-use crate::args::Braile;
+use crate::args::Uniblock;
 use crate::utils::threshold::Threshold;
 
 use ansi_term::Color::RGB;
@@ -13,7 +13,7 @@ use std::io::Write;
 
 type MyResult<T> = Result<T, Box<dyn Error>>;
 
-impl Braile {
+impl Uniblock {
     pub fn run(&self) -> MyResult<()> {
         let img = image::open(&self.image).unwrap();
         let (img_w, img_h) = img.dimensions();
@@ -24,7 +24,7 @@ impl Braile {
         /* Get apropiate image resize */
         let (width, height): (u32, u32) = if self.fullscreen {
             if let Some((Width(w), Height(h))) = terminal_size() {
-                (2 * w as u32, 4 * h as u32)
+                (2 * w as u32, 3 * h as u32)
             } else {
                 (img_w, img_h)
             }
@@ -35,15 +35,15 @@ impl Braile {
                 // Keep aspect ratio of image but with specified height
                 (0, _) => (
                     (aspect_ratio * 2.0 * self.height as f64) as u32,
-                    4 * self.height,
+                    3 * self.height,
                 ),
                 // Keep aspect ratio of image but with specified width
                 (_, 0) => (
                     2 * self.width,
-                    (4.0 / aspect_ratio * self.width as f64) as u32,
+                    (3.0 / aspect_ratio * self.width as f64) as u32,
                 ),
                 // Specified width and height
-                (_, _) => (self.width * 2, self.height * 4),
+                (_, _) => (self.width * 2, self.height * 3),
             }
         };
 
@@ -91,10 +91,10 @@ impl Braile {
         let mut ansistr: Vec<ANSIString> = vec![];
 
         /* Analize the image by a 2x4 windowing */
-        for y in (0..height - 4).step_by(4) {
+        for y in (0..height - 3).step_by(3) {
             for x in (0..width - 2).step_by(2) {
                 let offset = window_anaysis(&img, x, y);
-                let ch = get_braile(offset).to_string();
+                let ch = get_sextant(offset).to_string();
 
                 ansistr.push(colorize(ch, &self.frgdcolor, &self.bkgdcolor));
             }
@@ -119,23 +119,22 @@ impl Braile {
     }
 }
 
-/// Perform a window analysis on the image to determine appropiate braile
-/// 8-dot character offset
-#[inline(always)]
+/// Perform a window analysis on the image to determine appropiate unicode
+/// block sextant character offset
 fn window_anaysis(img: &GrayImage, x: u32, y: u32) -> u8 {
-    /* https://en.wikipedia.org/wiki/Braille_Patterns
+    /*
+     * https://en.wikipedia.org/wiki/Symbols_for_Legacy_Computing
      *
-     * Read the image with a 2x4 window starting on the
+     * Read the image with a 2x3 window starting on the
      * top-left coord (x,y)
      *
-     *  The 8-dot cell represent each variation with the
+     *  The block sextant represent each variation with the
      *  following dot numbering
      *
      *  +-------+
-     *  + 1 | 4 +
-     *  + 2 | 5 +
-     *  + 3 | 6 +
-     *  + 7 | 8 +
+     *  + 1 | 2 +
+     *  + 3 | 4 +
+     *  + 5 | 6 +
      *  +-------+
      *
      *  Each position represents a bit in a byte in little-endian order
@@ -144,25 +143,46 @@ fn window_anaysis(img: &GrayImage, x: u32, y: u32) -> u8 {
 
     let mut count = 0;
     count += (img[(x + 0, y + 0)][0] / 255) << 0;
-    count += (img[(x + 0, y + 1)][0] / 255) << 1;
-    count += (img[(x + 0, y + 2)][0] / 255) << 2;
-    count += (img[(x + 1, y + 0)][0] / 255) << 3;
-    count += (img[(x + 1, y + 1)][0] / 255) << 4;
+    count += (img[(x + 1, y + 0)][0] / 255) << 1;
+    count += (img[(x + 0, y + 1)][0] / 255) << 2;
+    count += (img[(x + 1, y + 1)][0] / 255) << 3;
+    count += (img[(x + 0, y + 2)][0] / 255) << 4;
     count += (img[(x + 1, y + 2)][0] / 255) << 5;
-    count += (img[(x + 0, y + 3)][0] / 255) << 6;
-    count += (img[(x + 1, y + 3)][0] / 255) << 7;
 
     count
 }
 
-/// Get the braile 8-dot character by means of the unicode offset
-#[inline(always)]
-fn get_braile(offset: u8) -> char {
-    /* The 8 dot-cell codes start at the base address 0x2800
-     * and each variation is an offset from the base address
+/// Get the unicode block sextant character by means of the unicode offset
+fn get_sextant(offset: u8) -> char {
+    /* The 6-block cell codes start at the base address 0x1FB00
+     * and each variation is an offset from the base address,
+     * but theres no code for empty block nor left block nor right block nor full block
+     * which correspond to offset 0, 21, 42 and 63 respectively
      * */
 
-    std::char::from_u32(offset as u32 + 0x2800).unwrap()
+
+    if offset == 0 {
+        ' '
+    }
+    else if offset < 21 {
+        std::char::from_u32(offset as u32 - 1 + 0x1FB00).unwrap()
+    }
+    else if offset == 21 {
+       '\u{258C}' 
+    }
+    else if offset > 21 && offset < 42 {
+        std::char::from_u32(offset as u32 - 22 + 0x1FB14).unwrap()
+    }
+    else if offset == 42 {
+       '\u{258C}' 
+    }
+    else if offset > 42 && offset < 63 {
+        std::char::from_u32(offset as u32 - 42 + 0x1FB27).unwrap()
+    }
+    else{
+       '\u{2588}' 
+    }
+
 }
 
 /// Colorizes the string with a (24-bit) foreground and background color

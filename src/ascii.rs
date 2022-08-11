@@ -64,7 +64,10 @@ impl Ascii {
         let img = img.resize_exact(width, height, filter);
         assert_eq!(img.dimensions(), (width, height));
 
-        /* Invert image colors if required */
+        /* Apply image color transformations */
+        let img = img.adjust_contrast(self.contrast)
+                     .brighten(self.brightness);
+
         /* This option doesnt look that good xD */
         let mut char_set: Vec<char> = self.char_set.chars().collect();
 
@@ -86,7 +89,7 @@ impl Ascii {
             rgb2ascii(&img, &mut ansistr, &char_set);
         } else {
             // nocolor
-            luma2ascii(&img, &mut ansistr, &char_set);
+            luma2ascii(&img, &mut ansistr, &char_set, &self.frgdcolor, &self.bkgdcolor);
         }
 
         /* Add extra style */
@@ -158,15 +161,16 @@ fn term2ascii(img: &DynamicImage, ansistr: &mut Vec<ANSIString>, character_set: 
 /// Convert Luma image to a text representation
 /// mapping the luma values of the image to the characters
 /// in a given character set.
-fn luma2ascii(img: &DynamicImage, ansistr: &mut Vec<ANSIString>, character_set: &Vec<char>) {
+fn luma2ascii(img: &DynamicImage, ansistr: &mut Vec<ANSIString>, character_set: &Vec<char>, frgd: &Vec<u8>, bkgd: &Vec<u8>) {
     let (width, height) = img.dimensions();
     let luma = img.to_luma8();
 
     for y in 0..height {
         for x in 0..width {
             let index: usize = (luma[(x, y)][0] as usize) * (character_set.len() - 1) / 0xFF;
+            let ch = character_set[index].to_string();
 
-            ansistr.push(Style::default().paint(character_set[index].to_string()));
+            ansistr.push(colorize(ch, &frgd, &bkgd));
         }
         ansistr.push(Style::default().paint("\n"));
     }
@@ -187,4 +191,21 @@ fn stylize(ansistr: &mut Vec<ANSIString>, bold: bool, blink: bool, underline: bo
             (true, true, true) => *style = (*style).bold().blink().underline(),
         }
     }
+}
+
+/// Colorizes the string with a (24-bit) foreground and background color
+fn colorize<'a>(ch: String, frgd: &Vec<u8>, bkgd: &Vec<u8>) -> ANSIString<'a> {
+    /* Select appropiate style and fills the details */
+    let style = match (frgd.is_empty(), bkgd.is_empty()) {
+        (false, false) => RGB(frgd[0], frgd[1], frgd[2])
+            .on(RGB(bkgd[0], bkgd[1], bkgd[2]))
+            .paint(ch),
+        (true, false) => RGB(255, 255, 255)
+            .on(RGB(bkgd[0], bkgd[1], bkgd[2]))
+            .paint(ch),
+        (false, true) => RGB(frgd[0], frgd[1], frgd[2]).paint(ch),
+        (true, true) => Style::default().paint(ch),
+    };
+
+    style
 }

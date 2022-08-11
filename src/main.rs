@@ -2,6 +2,7 @@ mod args;
 mod ascii;
 mod braile;
 mod block;
+mod uniblock;
 mod utils;
 
 use clap::Parser;
@@ -22,6 +23,9 @@ fn main() {
             },
             args::AnsinatorCommands::Block(block) => {
                 block.run() 
+            },
+            args::AnsinatorCommands::Uniblock(uniblock) => {
+                uniblock.run() 
             },
         }
     {

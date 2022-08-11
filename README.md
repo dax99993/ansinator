@@ -31,6 +31,7 @@ cargo install --path .
 - Ascii
 - Braile 8-dot
 - Block
+- Uniblock (sextant)
 
 
 ## Todo

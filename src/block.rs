@@ -69,7 +69,9 @@ impl Block {
         let img = img.resize_exact(width, height, filter);
         assert_eq!(img.dimensions(), (width, height));
 
-        let img = img.into_rgb8();
+        let img = img.adjust_contrast(self.contrast)
+                         .brighten(self.brightness)
+                         .into_rgb8();
 
         let mut ansistr: Vec<ANSIString> = vec![];
 
