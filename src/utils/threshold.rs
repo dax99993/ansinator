@@ -1,27 +1,32 @@
+//! GrayImage Threshold Trait. 
+//!
+//! Provide the Threshold Trait for GrayImage, implementing:
+//! + Otsu's binarization threshold 
+//! + Manual binarization threshold 
+//! + Image pixel invertion
+
 use image::GrayImage;
 
 /// Related threshold functions for binarization
 pub trait Threshold {
     /// Binarize the image with the given threshold value
-    /* Manual threshold value */
     fn threshold(&mut self, threshold: u8);
-    /* Otsu's Threshold Method
-     *
-     * The code was copy shamelessly from tai
-     * https://github.com/MustafaSalih1993/tai/blob/master/src/operations/otsu_threshold.rs
-     *
-     * Thanks for the code and information about
-     * automatic threshold!!
-     *
-     * */
     /// Binarize the image with the threshold value calculated with Otsu's method
+    ///
+    /// Otsu's method allows for automatic image binarization based on statistical
+    /// analysis with the image's histogram.
+    ///
+    /// The code was copy shamelessly from tai
+    /// <https://github.com/MustafaSalih1993/tai/blob/master/src/operations/otsu_threshold.rs>
+    ///
+    /// Thanks for the code and information about
+    /// automatic threshold!!.
     fn otsu_threshold(&mut self);
     /// Create histogram of the pixel values
     fn get_histogram(&mut self) -> [usize; 256];
     /// Analyze image histogram and calculated best threshold value
     fn get_otsu_value(&mut self) -> u8;
-    /// Invert pixel values
-    /* Invert pixel values */
+    /// Invert image pixels values
     fn invert(&mut self);
 }
 

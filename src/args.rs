@@ -1,3 +1,13 @@
+//! Handle Clap Arguments
+//!
+//! Defines the following programs:
+//!
+//! + Ascii
+//! + Braile
+//! + Block
+//! + Uniblock
+
+
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Debug, Parser)]
@@ -38,7 +48,8 @@ pub struct Ascii {
     /// Use given character set for convertion
     #[clap(short, long = "char-set")]
     #[clap(value_name = "CHAR SET")]
-    #[clap(default_value_t = String::from(" .~*:+zM#&@$"))]
+    //#[clap(default_value_t = String::from(" .~*:+zM#&@$"))]
+    #[clap(default_value_t = String::from(" !\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"))]
     pub char_set: String,
     /// Invert character set
     #[clap(short = 'i', long = "invert-char-set")]

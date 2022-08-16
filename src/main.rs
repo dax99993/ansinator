@@ -1,3 +1,5 @@
+//! Ansinator is collection of image convertion to character representation programs.
+
 mod args;
 mod ascii;
 mod braile;
@@ -29,7 +31,7 @@ fn main() {
             },
         }
     {
-        eprintln!("Application error: {}",e);
+        eprintln!("{}",e);
         process::exit(1);
     }
 

@@ -1,3 +1,11 @@
+//! Image Uniblock (Sextant) convertion
+//!
+//! Functions for image uniblock (sextant) convertion with the following features:
+//!
+//! + Best fitting character analysis 
+//! + RGB coloring (fixed foreground and fixed background)
+//! + Bold and Blink ansi styles
+
 use crate::args::Uniblock;
 use crate::utils::threshold::Threshold;
 

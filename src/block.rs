@@ -1,3 +1,13 @@
+//! Image Block convertion
+//!
+//! Functions for image block convertion with the following features:
+//!
+//! + Half block unicode mode
+//! + Whole block mode
+//! + RGB coloring
+//! + 256 Terminal Colors coloring
+
+
 use crate::args::Block;
 use crate::utils::terminal_color;
 
@@ -115,9 +125,9 @@ fn rgb2whole(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
             let b = img[(x, y)][2];
 
             if termcolor {
-                let tcolor = terminal_color::minimize(r, g, b);
+                let tcolor = terminal_color::TermColor::from(r, g, b);
 
-                ansistr.push(Fixed(0).on(Fixed(tcolor)).paint(" "));
+                ansistr.push(Fixed(0).on(Fixed(tcolor.index)).paint(" "));
             } else {
                 ansistr.push(RGB(0, 0, 0).on(RGB(r, g, b)).paint(" "));
             }
@@ -127,9 +137,10 @@ fn rgb2whole(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
 }
 
 /// Convert RGB image to a text representation using ansi (8-bit) or (24-bit) color,
-/// mapping the two pixels of the image to a single terminal character block
-/* The mapping uses the upper pixel with the unicode upper block character and
- * the pixel below is mapped to a simple colored background */
+/// mapping the two pixels of the image to a single terminal character block.
+/// 
+/// The mapping uses the upper pixel with the unicode upper block character and
+/// the pixel below is mapped to a simple colored background.
 fn rgb2half(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
     let upper_block = "\u{2580}";
 
@@ -147,8 +158,10 @@ fn rgb2half(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
             let lb = img[(x, y + 1)][2];
 
             if termcolor {
-                let utcolor = terminal_color::minimize(ur, ug, ub);
-                let ltcolor = terminal_color::minimize(lr, lg, lb);
+                let utcolor = terminal_color::TermColor::from(ur, ug, ub)
+                                .index;
+                let ltcolor = terminal_color::TermColor::from(lr, lg, lb)
+                                .index;
 
                 ansistr.push(Fixed(utcolor).on(Fixed(ltcolor)).paint(upper_block));
             } else {

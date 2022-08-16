@@ -1,3 +1,12 @@
+//! Image Braile convertion
+//!
+//! Functions for image ascii convertion with the following features:
+//!
+//! + Best fitting braile 8-dot character analysis 
+//! + RGB coloring (fixed foreground and fixed background)
+//! + Bold, Blink ansi styles
+
+
 use crate::args::Braile;
 use crate::utils::threshold::Threshold;
 
@@ -93,8 +102,8 @@ impl Braile {
         /* Analize the image by a 2x4 windowing */
         for y in (0..height - 4).step_by(4) {
             for x in (0..width - 2).step_by(2) {
-                let offset = window_anaysis(&img, x, y);
-                let ch = get_braile(offset).to_string();
+                let ch = window_anaysis(&img, x, y)
+                            .to_string();
 
                 ansistr.push(colorize(ch, &self.frgdcolor, &self.bkgdcolor));
             }
@@ -119,28 +128,27 @@ impl Braile {
     }
 }
 
-/// Perform a window analysis on the image to determine appropiate braile
-/// 8-dot character offset
-#[inline(always)]
-fn window_anaysis(img: &GrayImage, x: u32, y: u32) -> u8 {
-    /* https://en.wikipedia.org/wiki/Braille_Patterns
-     *
-     * Read the image with a 2x4 window starting on the
-     * top-left coord (x,y)
-     *
-     *  The 8-dot cell represent each variation with the
-     *  following dot numbering
-     *
-     *  +-------+
-     *  + 1 | 4 +
-     *  + 2 | 5 +
-     *  + 3 | 6 +
-     *  + 7 | 8 +
-     *  +-------+
-     *
-     *  Each position represents a bit in a byte in little-endian order
-     *
-     */
+/// Perform a window analysis on the image to determine appropiate braile character
+///
+/// Calculate appropiate Braile 8-dot character offset
+/// <https://en.wikipedia.org/wiki/Braille_Patterns>
+///
+/// Read the image with a 2x4 window starting on the
+/// top-left coord (x,y)
+///
+/// The 8-dot cell represent each variation with the
+/// following dot numbering
+///
+/// | A | B |
+/// |---|---|
+/// | 1 | 4 |
+/// | 2 | 5 |
+/// | 3 | 6 |
+/// | 7 | 8 |
+///
+/// Each position represents a bit in a byte in little-endian order.
+///
+fn window_anaysis(img: &GrayImage, x: u32, y: u32) -> char {
 
     let mut count = 0;
     count += (img[(x + 0, y + 0)][0] / 255) << 0;
@@ -152,15 +160,17 @@ fn window_anaysis(img: &GrayImage, x: u32, y: u32) -> u8 {
     count += (img[(x + 0, y + 3)][0] / 255) << 6;
     count += (img[(x + 1, y + 3)][0] / 255) << 7;
 
-    count
+    let ch = get_braile(count);
+
+    ch
 }
 
 /// Get the braile 8-dot character by means of the unicode offset
-#[inline(always)]
+///
+/// The 8 dot-cell codes start at the base address 0x2800
+/// and each variation is an offset from the base address
+/// 
 fn get_braile(offset: u8) -> char {
-    /* The 8 dot-cell codes start at the base address 0x2800
-     * and each variation is an offset from the base address
-     * */
 
     std::char::from_u32(offset as u32 + 0x2800).unwrap()
 }
