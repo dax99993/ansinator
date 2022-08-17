@@ -13,7 +13,7 @@ ansinator ascii ./tests/images/pic5.jpg -W 120 -H 40 --rgbcolor -c "0123456789"
 <img src="https://github.com/dax99993/ansinator/blob/main/demo/ascii_2.png" width='1024' height='768'>
 
 ```sh
-ansinator ascii ./tests/images/pic3.webp -f --termcolor -b
+ansinator ascii ./tests/images/pic3.webp -f --termcolor -b -C 140 -S 20
 ```
 
 <img src="https://github.com/dax99993/ansinator/blob/main/demo/ascii_3.png" width='1024' height='768'>
