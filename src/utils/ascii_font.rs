@@ -11,10 +11,10 @@ pub type Font = [u8;5*7];
 ///
 /// Container of Ascii Font, for storing the font data
 /// and the character it represents
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AsciiFont {
+    pub ch: char,
     pub font: Font,
-    pub ch: char
 }
 
 
@@ -31,6 +31,7 @@ impl AsciiFont {
     pub fn from(ch: char) -> Self {
         let mut data = AsciiFont::default();
 
+        //assert!(ch.is_ascii() == true, "{}", "Character set should contain only ascii");
         /* If not an ascii character return a default AsciiFont (space) */
         if !ch.is_ascii() { return data; }
 

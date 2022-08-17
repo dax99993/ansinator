@@ -29,13 +29,13 @@ cargo install --path .
 
 ## Programs
 - Ascii
-- Braile 8-dot
 - Block
+- Braile 8-dot
 - Uniblock (sextant)
 
 
 ## Todo
-- [ ] Best fitting ascii character analysis 
+- [x] Best fitting ascii character analysis 
 - [ ] Simple animation
 
 ## License

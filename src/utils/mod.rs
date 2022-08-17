@@ -7,5 +7,6 @@
 //! + Image binarization
 
 pub mod ascii_font;
+pub mod func;
 pub mod terminal_color;
 pub mod threshold;

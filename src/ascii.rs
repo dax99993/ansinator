@@ -8,14 +8,12 @@
 //! + Bold, Blink and Underline ansi styles
 
 use crate::args::Ascii;
-use crate::utils::{terminal_color, ascii_font};
+use crate::utils::{ascii_font, func};
 
-use ansi_term::Color::{Fixed, RGB};
-use ansi_term::{ANSIString, ANSIStrings, Style};
+use ansi_term::{ANSIString, ANSIStrings};
+
 use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, GrayImage};
-use terminal_size::{terminal_size, Height, Width};
-
+use image::{GenericImageView, GrayImage, RgbImage};
 
 use std::error::Error;
 use std::fs::File;
@@ -26,29 +24,15 @@ type MyResult<T> = Result<T, Box<dyn Error>>;
 impl Ascii {
     pub fn run(&self) -> MyResult<()> {
         let img = image::open(&self.image).unwrap();
-        let (img_w, img_h) = img.dimensions();
-
-        /* Get aspect ratio of image */
-        let aspect_ratio: f64 = img_w as f64 / img_h as f64;
 
         /* Get apropiate image resize */
+        let img_dim = img.dimensions();
+        let scale = (5,7);
+
         let (width, height): (u32, u32) = if self.fullscreen {
-            if let Some((Width(w), Height(h))) = terminal_size() {
-                (w as u32, h as u32)
-            } else {
-                (img_w, img_h)
-            }
+            func::get_fullscreen_size(img_dim, scale)
         } else {
-            match (self.width, self.height) {
-                // Original image size
-                (0, 0) => (img_w, img_h),
-                // Keep aspect ratio of image but with specified height
-                (0, _) => ((aspect_ratio * self.height as f64) as u32, self.height),
-                // Keep aspect ratio of image but with specified width
-                (_, 0) => (self.width, (1.0 / aspect_ratio * self.width as f64) as u32),
-                // Specified width and height
-                (_, _) => (self.width, self.height),
-            }
+            func::get_actual_size(img_dim, (scale.0 * self.width, scale.1 * self.height))
         };
 
         /* Get selected resampling filter */
@@ -70,41 +54,51 @@ impl Ascii {
             filter = FilterType::Triangle;
         }
 
-        /* Resize as needed with given filter */
-        let img = img.resize_exact(5 * width, 7 * height, filter);
-        assert_eq!(img.dimensions(), (5 * width, 7 * height));
-
         /* Apply image color transformations */
         let img = img.adjust_contrast(self.contrast)
                      .brighten(self.brightness);
 
-        /* This option doesnt look that good xD */
-        let mut char_set: Vec<ascii_font::AsciiFont> = self.char_set.chars().map(|c| ascii_font::AsciiFont::from(c)).collect();
+        /* Resize as needed with given filter */
+        let mut img = img.resize_exact(width, height, filter);
+        assert_eq!(img.dimensions(), (width, height));
+
+        
+        /* Collect, order and remove duplicates from character set */
+        let mut char_set = self.char_set.chars()
+                              .map(|c| ascii_font::AsciiFont::from(c))
+                              .collect::<Vec<ascii_font::AsciiFont>>();
+
+        char_set.sort_unstable();
+        char_set.dedup();
 
         //println!("{:?}", char_set);
 
-        if self.invert_char_set {
-            char_set.reverse();
+        /* Invert image colors */
+        if self.invert {
+            img.invert();
         }
 
-        //TODO
-        //subpixel Analysis
+        /* Create Rgb and GrayImage */
+        let luma = img.to_luma8();
+        let rgb = img.resize_exact(width / scale.0, height / scale.1, filter)
+                     .into_rgb8();
 
-        let mut ansistr: Vec<ANSIString> = vec![];
-
-        if self.termcolor {
-            //256 termcolor
-            term2ascii(img, &mut ansistr, &char_set);
-        } else if self.rgbcolor {
+        /* Convert image to ascii */
+        let mut ansistr: Vec<ANSIString> =
+        if self.rgbcolor {
             //RGB 24bit fullcolor
-            rgb2ascii(img, &mut ansistr, &char_set);
+            color2ascii(rgb, luma, &char_set, func::rgbcolor)
+        }
+        else if self.termcolor {
+            //256 termcolor
+            color2ascii(rgb, luma, &char_set, func::termcolor)
         } else {
             // nocolor
-            luma2ascii(img, &mut ansistr, &char_set, &self.frgdcolor, &self.bkgdcolor);
-        }
+            luma2ascii(luma, &char_set, &self.frgdcolor, &self.bkgdcolor)
+        };
 
         /* Add extra style */
-        stylize(&mut ansistr, self.bold, self.blink, self.underline);
+        func::stylize(&mut ansistr, self.bold, self.blink, self.underline);
 
         let ansi_output = ANSIStrings(&ansistr);
 
@@ -123,85 +117,63 @@ impl Ascii {
     }
 }
 
-/// Convert RGB image to a text representation using ansi (24-bit) true color,
+
+/// Convert RGB image to a text representation using ansi (24-bit) true color or 256 terminal colors,
 /// mapping the luma values of the image to the characters
 /// in a given character set.
-fn rgb2ascii(img: DynamicImage, ansistr: &mut Vec<ANSIString>, character_set: &Vec<ascii_font::AsciiFont>) {
-    let (width, height) = img.dimensions();
-    let width = width / 5;
-    let height = height / 7;
+fn color2ascii<'a, F>(rgb: RgbImage, luma: GrayImage, character_set: &Vec<ascii_font::AsciiFont>, f: F) -> Vec<ANSIString<'a>>
+where
+    F: Fn(u8, u8, u8) -> ansi_term::Color
+{
+    let mut ansistr: Vec<ANSIString> = vec![];
 
-    let luma = img.to_luma8();
+    let (width, height) = rgb.dimensions();
     
-    let img = img.resize_exact(width, height, FilterType::CatmullRom);
-    let rgb = img.to_rgb8();
-
     for y in 0..height {
+        let mut color = f(0,0,0);
         for x in 0..width {
             let r = rgb[(x, y)][0];
             let g = rgb[(x, y)][1];
             let b = rgb[(x, y)][2];
 
             //Get character
-            let ch = window_anaysis(&luma, x, y, character_set);
+            let ch = window_anaysis(&luma, x, y, character_set)
+                        .to_string();
 
-            ansistr.push(RGB(r, g, b).paint(ch.to_string()));
+            //Create appropiate Color
+            color = f(r,g,b);
+
+            ansistr.push(color.paint(ch));
         }
-        ansistr.push(Style::default().paint("\n"));
+        ansistr.push(color.paint("\n"));
     }
+
+    ansistr
 }
 
-/// Convert RGB image to a text representation using ansi (8-bit) 256-color,
-/// mapping the luma values of the image to the characters
-/// in a given character set.
-fn term2ascii(img: DynamicImage, ansistr: &mut Vec<ANSIString>, character_set: &Vec<ascii_font::AsciiFont>) {
-    let (width, height) = img.dimensions();
-    let width = width / 5;
-    let height = height / 7;
-
-    let luma = img.to_luma8();
-    
-    let img = img.resize_exact(width, height, FilterType::CatmullRom);
-    let rgb = img.to_rgb8();
-
-    for y in 0..height {
-        for x in 0..width {
-            let r = rgb[(x, y)][0];
-            let g = rgb[(x, y)][1];
-            let b = rgb[(x, y)][2];
-
-            //Get character
-            let ch = window_anaysis(&luma, x, y, character_set);
-
-            // Find best approximate terminal color
-            let tcolor = terminal_color::TermColor::from(r, g, b)
-                            .index;
-
-            let colorstr = Fixed(tcolor);
-            ansistr.push(colorstr.paint(ch.to_string()));
-        }
-        ansistr.push(Style::default().paint("\n"));
-    }
-}
 
 /// Convert Luma image to a text representation
 /// mapping the luma values of the image to the characters
 /// in a given character set.
-fn luma2ascii(img: DynamicImage, ansistr: &mut Vec<ANSIString>, character_set: &Vec<ascii_font::AsciiFont>, frgd: &Vec<u8>, bkgd: &Vec<u8>) {
-    let (width, height) = img.dimensions();
-    let luma = img.into_luma8();
+fn luma2ascii<'a>(luma: GrayImage, character_set: &Vec<ascii_font::AsciiFont>, frgd: &Vec<u8>, bkgd: &Vec<u8>) -> Vec<ANSIString<'a>> {
+    let mut ansistr: Vec<ANSIString> = vec![];
+
+    let (width, height) = luma.dimensions();
 
     let width = width / 5;
     let height = height / 7;
 
     for y in 0..height {
         for x in 0..width {
-            let ch = window_anaysis(&luma, x, y, character_set).to_string();
+            let ch = window_anaysis(&luma, x, y, character_set)
+                        .to_string();
 
-            ansistr.push(colorize(ch, &frgd, &bkgd));
+            ansistr.push(func::colorize(ch, &frgd, &bkgd));
         }
-        ansistr.push(Style::default().paint("\n"));
+        ansistr.push(func::colorize('\n'.to_string(), &frgd, &bkgd));
     }
+
+    ansistr
 }
 
 /// Analyze image with windows and calculate best fitting character
@@ -220,39 +192,3 @@ fn window_anaysis(img: &GrayImage, x: u32, y:u32, font_set: &Vec<ascii_font::Asc
     
     ch
 }
-
-/// Add ansi styles to a vector of ANSIString
-fn stylize(ansistr: &mut Vec<ANSIString>, bold: bool, blink: bool, underline: bool) {
-    for v in ansistr {
-        let style = v.style_ref_mut();
-        match (bold, blink, underline) {
-            (false, false, false) => break,
-            (false, false, true) => *style = (*style).underline(),
-            (false, true, false) => *style = (*style).blink(),
-            (false, true, true) => *style = (*style).blink().underline(),
-            (true, false, false) => *style = (*style).bold(),
-            (true, false, true) => *style = (*style).bold().underline(),
-            (true, true, false) => *style = (*style).bold().blink(),
-            (true, true, true) => *style = (*style).bold().blink().underline(),
-        }
-    }
-}
-
-/// Colorizes the string with a (24-bit) foreground and background color
-fn colorize<'a>(ch: String, frgd: &Vec<u8>, bkgd: &Vec<u8>) -> ANSIString<'a> {
-    /* Select appropiate style and fills the details */
-    let style = match (frgd.is_empty(), bkgd.is_empty()) {
-        (false, false) => RGB(frgd[0], frgd[1], frgd[2])
-            .on(RGB(bkgd[0], bkgd[1], bkgd[2]))
-            .paint(ch),
-        (true, false) => RGB(255, 255, 255)
-            .on(RGB(bkgd[0], bkgd[1], bkgd[2]))
-            .paint(ch),
-        (false, true) => RGB(frgd[0], frgd[1], frgd[2]).paint(ch),
-        (true, true) => Style::default().paint(ch),
-    };
-
-    style
-}
-
-

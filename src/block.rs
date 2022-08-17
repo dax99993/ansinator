@@ -7,15 +7,13 @@
 //! + RGB coloring
 //! + 256 Terminal Colors coloring
 
-
 use crate::args::Block;
-use crate::utils::terminal_color;
+use crate::utils::{func};
 
-use ansi_term::Color::{Fixed, RGB};
-use ansi_term::{ANSIString, ANSIStrings, Style};
+use ansi_term::{ANSIString, ANSIStrings};
+
 use image::imageops::FilterType;
 use image::{GenericImageView, RgbImage};
-use terminal_size::{terminal_size, Height, Width};
 
 use std::error::Error;
 use std::fs::File;
@@ -26,35 +24,21 @@ type MyResult<T> = Result<T, Box<dyn Error>>;
 impl Block {
     pub fn run(&self) -> MyResult<()> {
         let img = image::open(&self.image).unwrap();
-        let (img_w, img_h) = img.dimensions();
-
-        // Get aspect Ratio of image
-        let aspect_ratio: f64 = img_w as f64 / img_h as f64;
 
         /* Get apropiate image resize */
-        let (width, mut height): (u32, u32) = if self.fullscreen {
-            if let Some((Width(w), Height(h))) = terminal_size() {
-                (w as u32, h as u32)
-            } else {
-                (img_w, img_h)
-            }
-        } else {
-            match (self.width, self.height) {
-                // Original image size
-                (0, 0) => (img_w, img_h),
-                // Keep aspect ratio of image but with specified height
-                (0, _) => ((aspect_ratio * self.height as f64) as u32, self.height),
-                // Keep aspect ratio of image but with specified width
-                (_, 0) => (self.width, (1.0 / aspect_ratio * self.width as f64) as u32),
-                // Specified width and height
-                (_, _) => (self.width, self.height),
-            }
+        let img_dim = img.dimensions();
+        let scale = if self.wholeblock {
+            (1,1)
+        }
+        else {
+            (1,2)
         };
 
-        /* Need twice the height on half block mode */
-        if !self.wholeblock {
-            height *= 2;
-        }
+        let (width, height): (u32, u32) = if self.fullscreen {
+            func::get_fullscreen_size(img_dim, scale)
+        } else {
+            func::get_actual_size(img_dim, ( scale.0 * self.width, scale.1 * self.height))
+        };
 
         /* Get selected resampling filter */
         let mut filter = FilterType::Nearest;
@@ -83,22 +67,25 @@ impl Block {
                          .brighten(self.brightness)
                          .into_rgb8();
 
-        let mut ansistr: Vec<ANSIString> = vec![];
 
+        let f = 
+        if self.termcolor {
+            func::termcolor
+        }
+        else {
+            func::rgbcolor
+        };
+
+        let mut ansistr: Vec<ANSIString> =
         /* Whole block mode - each pixel correspond to a single terminal colored cell */
         if self.wholeblock {
-            rgb2whole(&img, &mut ansistr, self.termcolor);
+            rgb2whole(&img, f)
         } else {
-            rgb2half(&img, &mut ansistr, self.termcolor);
-        }
+            rgb2half(&img, f)
+        };
 
         /* Add extra style */
-        if self.blink {
-            for v in &mut ansistr {
-                let style = v.style_ref_mut();
-                *style = (*style).blink();
-            }
-        }
+        func::stylize(&mut ansistr, false, self.blink, false);
 
         /*Print to stdout*/
         if !self.noecho {
@@ -117,23 +104,30 @@ impl Block {
 
 /// Convert RGB image to a text representation using ansi (8-bit) or (24-bit) color,
 /// mapping the each pixel of the image to a single terminal character block
-fn rgb2whole(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
+fn rgb2whole<'a, F>(img: &RgbImage, f: F) -> Vec<ANSIString<'a>> 
+where
+    F: Fn(u8, u8, u8) -> ansi_term::Color
+{
+    let mut ansistr: Vec<ANSIString> = vec![];
+
     for y in 0..img.height() {
+        let mut color = f(0,0,0).on(f(0,0,0));
         for x in 0..img.width() {
             let r = img[(x, y)][0];
             let g = img[(x, y)][1];
             let b = img[(x, y)][2];
 
-            if termcolor {
-                let tcolor = terminal_color::TermColor::from(r, g, b);
+            let tcolor = f(r, g, b);
+            let frgd = f(0, 0, 0);
+            
+            color = frgd.on(tcolor);
 
-                ansistr.push(Fixed(0).on(Fixed(tcolor.index)).paint(" "));
-            } else {
-                ansistr.push(RGB(0, 0, 0).on(RGB(r, g, b)).paint(" "));
-            }
+            ansistr.push(color.paint(" "));
         }
-        ansistr.push(Style::default().paint("\n"));
+        ansistr.push(color.paint("\n"));
     }
+
+    ansistr
 }
 
 /// Convert RGB image to a text representation using ansi (8-bit) or (24-bit) color,
@@ -141,11 +135,16 @@ fn rgb2whole(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
 /// 
 /// The mapping uses the upper pixel with the unicode upper block character and
 /// the pixel below is mapped to a simple colored background.
-fn rgb2half(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
+fn rgb2half<'a, F>(img: &RgbImage, f: F) -> Vec<ANSIString<'a>> 
+where
+    F: Fn(u8, u8, u8) -> ansi_term::Color
+{
     let upper_block = "\u{2580}";
+    let mut ansistr: Vec<ANSIString> = vec![];
 
     /* Analize the image by a 1x2 windowing with half block mode */
     for y in (0..img.height() - 2).step_by(2) {
+        let mut color = f(0,0,0).on(f(0,0,0));
         for x in 0..img.width() {
             /* Upper pixel color */
             let ur = img[(x, y)][0];
@@ -157,17 +156,16 @@ fn rgb2half(img: &RgbImage, ansistr: &mut Vec<ANSIString>, termcolor: bool) {
             let lg = img[(x, y + 1)][1];
             let lb = img[(x, y + 1)][2];
 
-            if termcolor {
-                let utcolor = terminal_color::TermColor::from(ur, ug, ub)
-                                .index;
-                let ltcolor = terminal_color::TermColor::from(lr, lg, lb)
-                                .index;
+            /* ansi Color*/
+            let utcolor = f(ur, ug, ub);
+            let ltcolor = f(lr, lg, lb);
 
-                ansistr.push(Fixed(utcolor).on(Fixed(ltcolor)).paint(upper_block));
-            } else {
-                ansistr.push(RGB(ur, ug, ub).on(RGB(lr, lg, lb)).paint(upper_block));
-            }
+            color = utcolor.on(ltcolor);
+
+            ansistr.push(color.paint(upper_block));
         }
-        ansistr.push(Style::default().paint("\n"));
+        ansistr.push(color.paint("\n"));
     }
+
+    ansistr
 }
