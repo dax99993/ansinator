@@ -35,23 +35,15 @@ impl Uniblock {
         };
 
         /* Get selected resampling filter */
-        let mut filter = FilterType::Lanczos3;
-
-        if self.filter_catmullrom {
-            filter = FilterType::CatmullRom;
-        }
-        if self.filter_gaussian {
-            filter = FilterType::Gaussian;
-        }
-        if self.filter_lanczos {
-            filter = FilterType::Lanczos3;
-        }
-        if self.filter_nearest {
-            filter = FilterType::Nearest;
-        }
-        if self.filter_triangle {
-            filter = FilterType::Triangle;
-        }
+        let filter = 
+        match &self.filter[..] {
+            "CATMULLROM" => FilterType::CatmullRom,
+            "GAUSSIAN" => FilterType::Gaussian,
+            "LANCZOS" => FilterType::Lanczos3,
+            "NEAREST" => FilterType::Nearest,
+            "TRIANGLE" => FilterType::Triangle,
+            _ => FilterType::CatmullRom,
+        };
 
         /* Resize as needed with given filter */
         let img = img.resize_exact(width, height, filter);
