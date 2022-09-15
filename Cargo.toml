@@ -1,20 +1,10 @@
-[package]
-name = "ansinator"
-version = "0.2.0"
-edition = "2021"
-authors = ["Dax99993"]
-license = "MIT"
-description = "A collection of programs to convert images to various character representation"
-readme = "README.md"
-repository = "https://github.com/dax99993/ansinator"
+[workspace]
 
-keywords = ["graphics", "cli", "ansi", "image", "ascii"]
-categories = ["graphics", "command-line-utilities"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-image = "^0.24.2"
-clap = { version = "^3.2.10", features = ["derive"] }
-ansi_term = "^0.12.1"
-terminal_size = "^0.2.1"
+members = [
+    "ansinator_cli",
+    "ansi_image",
+    "image_window",
+    "image_binarize",
+    "terminal_colors",
+    "ascii_font",
+]

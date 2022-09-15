@@ -1,0 +1,15 @@
+[package]
+name = "ansi_image"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ansi_term = "0.12.1"
+image = "0.24.3"
+image_window = { path = "../image_window" }
+image_binarize = { path = "../image_binarize" }
+terminal_colors = { path = "../terminal_colors" }
+ascii_font = { path = "../ascii_font" }
+terminal_size = "0.2.1"

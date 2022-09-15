@@ -68,6 +68,16 @@ pub struct Ascii {
     pub char_set: String,
 
 
+    /// Select character mode
+    #[clap(short = 'm',
+           long = "mode",
+           verbatim_doc_comment,
+           ignore_case = true,
+           help_heading = "MODE",
+           default_value = "PATTERN",
+           value_parser = ["GRADIENT", "PATTERN", ],
+    )]
+    pub luma_mode: String,
     /// Use bold style
     #[clap(short = 'b', long,
            help_heading = "ANSI STYLES",
@@ -163,9 +173,8 @@ pub struct Ascii {
            help_heading = "RESIZING",
     )]
     pub fullscreen: bool,
-
     /// Resize image width
-    /// [-W 0  keeps vertical aspect ratio]
+    /// [-W 0  keeps horizontal aspect ratio]
     #[clap(short = 'W',
            long,
            verbatim_doc_comment,
@@ -216,14 +225,16 @@ pub struct Block {
     )]
     pub noecho: bool,
 
-    /// Use one terminal cell per image pixel
-    /// (otherwise utilizes half-block characters)
-    #[clap(short,
-           long,
+    /// Select character mode
+    #[clap(short = 'm',
+           long = "mode",
            verbatim_doc_comment,
-           help_heading = "BLOCK MODE",
+           ignore_case = true,
+           help_heading = "MODE",
+           default_value = "HALF",
+           value_parser = ["HALF", "WHOLE", ],
     )]
-    pub wholeblock: bool,
+    pub block_mode: String,
 
 
     /// Use blink style

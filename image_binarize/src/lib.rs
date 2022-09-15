@@ -85,3 +85,31 @@ impl Threshold for GrayImage {
         self.iter_mut().for_each(|p| *p = 255 - *p);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::Luma;
+
+    #[test]
+    fn otsu_threshold_value() {
+
+        let mut img = GrayImage::new(4,4);
+        let pixels: [u8;16] = [120, 120,  21,  22,
+                                25, 26,   27, 160,
+                               180, 190, 123, 145,
+                               165, 175,  23,  24];
+
+        for y in 0..4 {
+            for x in 0..4 {
+                let pixel: [u8;1] = [pixels[4*y as usize + x as usize]];
+                img.put_pixel(x, y, Luma(pixel));
+            }
+        }
+
+        let otsu_value = img.get_otsu_value();
+
+        assert_eq!(otsu_value, 120);
+    }
+
+}

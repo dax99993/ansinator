@@ -5,7 +5,6 @@ mod ascii;
 mod braile;
 mod block;
 mod uniblock;
-mod utils;
 
 use clap::Parser;
 use args::AnsinatorArgs;
@@ -31,7 +30,7 @@ fn main() {
             },
         }
     {
-        eprintln!("{}",e);
+        eprintln!("{:?}",e);
         process::exit(1);
     }
 

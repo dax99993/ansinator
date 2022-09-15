@@ -5,7 +5,7 @@
 //! + Comparing ascii characters
 
 /// Short type alias for font data
-pub type Font = [u8;5*7];
+type Font = [u8;5*7];
 
 /// Abstraction for Ascii Font 
 ///
@@ -14,12 +14,12 @@ pub type Font = [u8;5*7];
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AsciiFont {
     pub ch: char,
-    pub font: Font,
+    pub data: Font,
 }
 
 
 impl Default for AsciiFont {
-    fn default() -> Self { Self { font:[0;35], ch : ' ' } }
+    fn default() -> Self { Self { data:[0;35], ch : ' ' } }
 }
 
 
@@ -29,11 +29,11 @@ impl AsciiFont {
     /// If a non ascii character is given as parameter, it returns a
     /// default AsciiFont (Space).
     pub fn from(ch: char) -> Self {
-        let mut data = AsciiFont::default();
+        let mut font = AsciiFont::default();
 
         //assert!(ch.is_ascii() == true, "{}", "Character set should contain only ascii");
         /* If not an ascii character return a default AsciiFont (space) */
-        if !ch.is_ascii() { return data; }
+        if !ch.is_ascii() { return font; }
 
         let ascii = ASCII_FONT[ch as usize - 32];
         for y in 0..7 {
@@ -45,12 +45,12 @@ impl AsciiFont {
                 else {
                     0
                 };                                                                                                                                                                             
-            data.font[y*5 + x] = p;
+            font.data[y*5 + x] = p;
             }
         }
-        data.ch = ch;
+        font.ch = ch;
 
-        data
+        font
     }
 
     /// Calculates the quadrance of two AsciiFont to measure similarity
@@ -66,10 +66,10 @@ impl AsciiFont {
     /// type of element squared
     /// in this case each element has an maximum equal to 255 and an AsciiFont Font data has 35 element thus the
     /// quadrance of opposite elements = 35 * 255*255.
-    fn quadrance(&self, afont: &AsciiFont) -> f64 {
+    fn quadrance(&self, font: &AsciiFont) -> f64 {
         let mut s = 0.0;
-        let f1 = self.font;
-        let f2 = afont.font;
+        let f1 = self.data;
+        let f2 = font.data;
 
         for (ai, bi) in f1.iter().zip(&f2) {
             s += f64::powi(*ai as f64 - *bi as f64, 2);
@@ -83,16 +83,16 @@ impl AsciiFont {
 ///
 /// Find the AsciiFont that minimizes the asimilarity of an AsciiFont
 /// by a exahustive calculation of quadrances, return the AsciiFont which minimizes the quadrance.
-pub fn minimize(afont1: &AsciiFont, afont_set: &Vec<AsciiFont> ) -> char {
+pub fn minimize(font1: &AsciiFont, font_set: &Vec<AsciiFont> ) -> char {
     let mut min = f64::MAX;
     let mut ch: char = ' ';
 
-    for afont in afont_set {
-        let q = afont1.quadrance(&afont);    
+    for font in font_set {
+        let q = font1.quadrance(&font);    
 
         if q < min {
             min = q;
-            ch = afont.ch;
+            ch = font.ch;
         }
     }
 
