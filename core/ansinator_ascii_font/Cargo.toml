@@ -1,0 +1,16 @@
+[package]
+name = "ansinator_ascii_font"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dax99993"]
+license = "MIT"
+description = "A Library to compare an array of u8 to a 5x7 font abstraction for computing similarity"
+#readme = "README.md"
+repository = "https://github.com/dax99993/ansinator"
+
+keywords = ["graphics", "image", "ascii"]
+categories = ["graphics"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

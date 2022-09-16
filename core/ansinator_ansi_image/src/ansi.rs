@@ -1,3 +1,11 @@
+//! A general representation of an image in ansi.
+//!
+//! This module defines the Ansinator trait for:
+//! + AnsiImage: A general representation of an image in ansi.
+//!
+//! Also defines and implements methods for:
+//! + AnsiImageResult: A container for the result of a convertion.
+//!
 #![allow(dead_code, unused)]
 
 use crate::error::AnsiImageError;
@@ -10,11 +18,13 @@ use std::fs::File;
 use std::io::Write;
 
 
+/// Container for result AnsiImage convertion
 #[derive(Debug)]
 pub struct AnsiImageResult<'a> {
     pub data: Vec<ANSIString<'a>>,
 }
 
+/// General representation for AnsiImage
 #[derive(Debug)]
 pub struct AnsiImage<T, S> {
     pub invert: bool,
@@ -36,6 +46,7 @@ pub struct AnsiImage<T, S> {
     pub mode: T,
 }
 
+/// Methods for AnsiImage
 pub trait Ansinator {
     fn new() -> Self;
     fn normal(&self) -> Self;
@@ -60,6 +71,7 @@ impl<T, S> Ansinator for AnsiImage<T, S>
 where T: Default + Copy,
       S: Default + Copy,
 {
+    /// Creates a new AnsiImage
     fn new() -> Self {
         Self { color: S::default(),
                mode: T::default(),
@@ -81,18 +93,23 @@ where T: Default + Copy,
         }
     }
 
+    /// Sets bold style
     fn bold(&self) -> Self {
         Self { bold: true, .. *self }
     }
+    /// Sets blink style
     fn blink(&self) -> Self {
         Self { blink: true, .. *self }
     }
+    /// Sets underline style
     fn underline(&self) -> Self {
         Self { underline: true, .. *self }
     }
+    /// Invert image convertion color
     fn invert(&self) -> Self {
         Self { invert: true, .. *self }
     }
+    /// Reset attributes to a normal state
     fn normal(&self) -> Self {
         Self { invert: false,
                 bold: false,
@@ -105,23 +122,25 @@ where T: Default + Copy,
         }
     }
 
-
+    /// Set fixed foreground
     fn set_foreground(&self, foreground: (u8,u8,u8) ) -> Self {
         Self{ has_foreground: true, foreground, .. *self}
     }
-
+    /// Set fixed background
     fn set_background(&self, background: (u8,u8,u8) ) -> Self {
         Self{ has_background: true, background, .. *self}
     }
 
+    /// Set brighten value
     fn brighten(&self, value: i32) -> Self {
         Self { brighten: value, .. *self }
     }
-
+    /// Set contrast value
     fn contrast(&self, value: f32) -> Self {
         Self { contrast: value, .. *self }
     }
 
+    /// Set filter for internal image manipulation
     fn filter(&self, filter: &str) -> Self {
         let filter = 
         match filter {
@@ -136,6 +155,7 @@ where T: Default + Copy,
         Self { filter, .. *self }
     }
 
+    /// Set size to terminal size
     fn fullscreen(&self) -> Self {
         /* Get terminal size if possible */
         let (width, height): (u32, u32) =
@@ -148,7 +168,7 @@ where T: Default + Copy,
         /* Update size */
         self.size(width, height)
     }
-
+    /// Set convertion result size
     fn size(&self, x: u32, y: u32) -> Self {
         Self { size: (x,y), .. *self }
     } 
@@ -159,11 +179,10 @@ impl<T, S> AnsiImage<T, S> {
 
     /// Get the size, accounting aspect ratio of new dimensions
     ///
-    /// If new_dimensions = (0,0) returns a new_dimensions
-    /// If new_dimensions = (0,_) returns a dimension keeping aspect ratio and given height dimension
-    /// If new_dimensions = (_,0) returns a dimension keeping aspect ratio and given width dimension
-    /// If new_dimensions = (_,_) returns original dimensions
-
+    /// If image_dimensions = `(0,0)` returns a image_dimensions 
+    /// If image_dimensions = `(0,_)` returns a dimension keeping aspect ratio and given height dimension
+    /// If image_dimensions = `(_,0)` returns a dimension keeping aspect ratio and given width dimension
+    /// If image_dimensions = `(_,_)` returns current size
     pub fn size_aspect_ratio(&self, image_dimensions: (u32,u32)) -> (u32, u32) {
 
         /* Get aspect ratio of image */
@@ -186,6 +205,7 @@ impl<T, S> AnsiImage<T, S> {
         }
     }
 
+    /// Resize image to satisfy size and scale
     pub fn image_resize_with_scale(&self, image: &DynamicImage) -> DynamicImage {
         /* update the size to account for aspect ratio */
         let size = self.size_aspect_ratio(image.dimensions());
@@ -243,16 +263,12 @@ mod tests {
                     .resize_exact(w*scale_w, h*scale_h, image::imageops::Nearest)
                     .into_luma8();
 
-        let mut braile = AnsiImage::new();
-        braile.bold();
-        braile.underline();
-        braile.set_frgd(vec![255,0,0]);
-        //braile.set_bkgd(vec![0,255,255]);
+        let mut ansi = AnsiImage::new()
+                        .bold()
+                        .underline()
+                        .set_foreground(vec![255,0,0])
+                        .set_background(vec![0,255,255]);
 
-
-        braile.print();
-
-        braile.save("../test_uniblock.txt");
         assert_eq!(4, 4);
     }
     */

@@ -1,88 +1,89 @@
-//! Image Uniblock (Sextant) convertion
+//! Image Braile convertion
 //!
-//! Functions for image uniblock (sextant) convertion with the following features:
+//! Functions for image ascii convertion with the following features:
 //!
-//! + Best fitting character analysis 
+//! + Best fitting braile 8-dot character analysis 
 //! + RGB coloring (fixed foreground and fixed background)
-//! + Bold and Blink ansi styles
+//! + Bold, Blink ansi styles
 
-use crate::args::Uniblock;
-use ansi_image::{uniblock::AnsiUniblock, ansi::Ansinator, error::AnsiImageError};
+use crate::args::Braile;
+use ansinator_ansi_image::{braile::AnsiBraile, ansi::Ansinator};
+use ansinator_ansi_image::error::AnsiImageError;
 
 //use std::error::Error;
 
 //type MyResult<T> = Result<T, Box<dyn Error>>;
 type MyResult<T> = Result<T, AnsiImageError>;
 
-impl Uniblock {
+impl Braile {
     pub fn run(&self) -> MyResult<()> {
-        let uniblock = AnsiUniblock::new();
+        let braile = AnsiBraile::new();
         /* Ansi style */
         
-        let uniblock =
+        let braile =
         if self.bold {
-            uniblock.bold()
+            braile.bold()
         } else {
-            uniblock
+            braile
         };
-        let uniblock = 
+        let braile = 
         if self.blink {
-            uniblock.blink()
+            braile.blink()
         } else {
-            uniblock
+            braile
         };
 
         /* Color Mode */
-        let uniblock = 
+        let braile = 
         if !self.frgdcolor.is_empty() {
             let r = self.frgdcolor[0];
             let g = self.frgdcolor[1];
             let b = self.frgdcolor[2];
-            uniblock.set_foreground((r,g,b))
+            braile.set_foreground((r,g,b))
         } else {
-            uniblock
+            braile
         };
-        let uniblock = 
+        let braile = 
         if !self.bkgdcolor.is_empty() {
             let r = self.bkgdcolor[0];
             let g = self.bkgdcolor[1];
             let b = self.bkgdcolor[2];
-            uniblock.set_background((r,g,b))
+            braile.set_background((r,g,b))
         } else {
-            uniblock
+            braile
         };
 
         /* Set size */
-        let uniblock = 
+        let braile = 
         if self.fullscreen {
-            uniblock.fullscreen()
+            braile.fullscreen()
         } else {
-            uniblock.size(self.width, self.height)
+            braile.size(self.width, self.height)
         };
         /* Selected resampling filter */
-        let uniblock = uniblock.filter(&self.filter);
+        let braile = braile.filter(&self.filter);
         /* Invert image colors */
-        let uniblock = 
+        let braile = 
         if self.invert {
-            uniblock.invert()
+            braile.invert()
         } else {
-            uniblock
+            braile
         };
         /* Image transformations */
-        let uniblock = uniblock.contrast(self.contrast);
-        let uniblock = uniblock.brighten(self.brightness);
+        let braile = braile.contrast(self.contrast);
+        let braile = braile.brighten(self.brightness);
 
         /* Binarize Method manual threshold or automatic otsu's method */
-        let uniblock = 
+        let braile = 
         if !self.threshold.is_empty() {
-            uniblock.threshold(self.threshold[0])
+            braile.threshold(self.threshold[0])
         } else {
-            uniblock.otsu_threshold()
+            braile.otsu_threshold()
         };
 
-        /* Convert image to uniblock */
-       // let ansi_output = uniblock.convert(&self.image);
-        let ansi_output = match uniblock.convert(&self.image) {
+        /* Convert image to braile */
+        //let ansi_output = braile.convert(&self.image).unwrap();
+        let ansi_output = match braile.convert(&self.image) {
             Ok(a) => a,
             Err(e) => return Err(e),
         };
@@ -94,7 +95,9 @@ impl Uniblock {
 
         /*Save to output file*/
         if !self.output.is_empty() {
-            ansi_output.save(&self.output[0]).unwrap();
+            if let Err(e) = ansi_output.save(&self.output[0]) {
+                return Err(e);
+            }
         }
 
         Ok(())

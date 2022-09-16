@@ -1,3 +1,5 @@
+//! Wrapper of errors.
+
 use std::fmt;
 
 #[derive(Debug)]

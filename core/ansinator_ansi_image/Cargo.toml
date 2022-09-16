@@ -1,0 +1,23 @@
+[package]
+name = "ansinator_ansi_image"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dax99993"]
+license = "MIT"
+description = "A Library defining specific structures for representing and converting an image in ansi"
+#readme = "README.md"
+repository = "https://github.com/dax99993/ansinator"
+
+keywords = ["graphics", "ansi", "image", "ascii"]
+categories = ["graphics"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ansi_term = "0.12.1"
+image = "0.24.3"
+terminal_size = "0.2.1"
+ansinator_image_window = { path = "../ansinator_image_window", version = "0.1.0" }
+ansinator_image_binarize = { path = "../ansinator_image_binarize", version = "0.1.0" }
+ansinator_terminal_colors = { path = "../ansinator_terminal_colors", version = "0.1.0" }
+ansinator_ascii_font = { path = "../ansinator_ascii_font", version = "0.1.0" }

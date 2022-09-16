@@ -9,7 +9,7 @@
 //! + Gradient(unicode) and Pattern(ascii) convertion methods
 
 use crate::args::Ascii;
-use ansi_image::{ascii::AnsiAscii, error::AnsiImageError, ansi::Ansinator};
+use ansinator_ansi_image::{ascii::AnsiAscii, error::AnsiImageError, ansi::Ansinator};
 
 //use std::error::Error;
 

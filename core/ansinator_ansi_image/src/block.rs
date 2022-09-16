@@ -1,9 +1,10 @@
+//! Representation of an image in block.
 #![allow(dead_code, unused)]
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
 use image::{DynamicImage, GenericImageView};
-use image_window::{Windowing, RgbImageWindow};
+use ansinator_image_window::{Windowing, RgbImageWindow};
 use std::default::Default;
 use ansi_term::Color;
 
@@ -53,9 +54,9 @@ impl AnsiBlock {
            Color::RGB(r,g,b).on(Color::RGB(br,bg,bb))
         },
         BlockColor::Terminalcolor => {
-            let frgd_index = terminal_colors::TermColor::from(r, g, b)
+            let frgd_index = ansinator_terminal_colors::TermColor::from(r, g, b)
                             .index;
-            let bkgd_index = terminal_colors::TermColor::from(br, bg, bb)
+            let bkgd_index = ansinator_terminal_colors::TermColor::from(br, bg, bb)
                             .index;
            Color::Fixed(frgd_index).on(Color::Fixed(bkgd_index))
         },
@@ -100,11 +101,11 @@ impl AnsiBlock {
         let res =
         match self.mode {
             BlockMode::Half => {
-                let rgb_window = rgb.into_window(1, 2).unwrap();
+                let rgb_window = rgb.to_window(1, 2).unwrap();
                 self.convertion_half(rgb_window)
             },
             BlockMode::Whole => {
-                let rgb_window = rgb.into_window(1, 1).unwrap();
+                let rgb_window = rgb.to_window(1, 1).unwrap();
                 self.convertion_whole(rgb_window)
             },
         };
@@ -200,8 +201,7 @@ mod tests {
     fn test_whole_truecolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let block = AnsiBlock::new()
                             .bold()
@@ -212,7 +212,7 @@ mod tests {
 
         println!("{:?}", block);
 
-        let result = block.convert(&img)
+        let result = block.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -224,8 +224,7 @@ mod tests {
     fn test_whole_terminalcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let block = AnsiBlock::new()
                             .bold()
@@ -236,7 +235,7 @@ mod tests {
 
         println!("{:?}", block);
 
-        let result = block.convert(&img)
+        let result = block.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -247,8 +246,7 @@ mod tests {
     fn test_half_truecolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let block = AnsiBlock::new()
                             .bold()
@@ -259,7 +257,7 @@ mod tests {
 
         println!("{:?}", block);
 
-        let result = block.convert(&img)
+        let result = block.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -271,8 +269,7 @@ mod tests {
     fn test_half_terminalcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let block = AnsiBlock::new()
                             .bold()
@@ -283,7 +280,7 @@ mod tests {
 
         println!("{:?}", block);
 
-        let result = block.convert(&img)
+        let result = block.convert(&image_path)
                             .unwrap();
 
         result.print();

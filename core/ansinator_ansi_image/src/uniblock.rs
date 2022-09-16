@@ -1,10 +1,11 @@
+//! Representation of an image in uniblock.
 #![allow(dead_code, unused)]
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
+use ansinator_image_window::{Windowing, GrayWindow, GrayImageWindow};
+use ansinator_image_binarize::Threshold;
 use image::DynamicImage;
-use image_window::{Windowing, GrayWindow, GrayImageWindow};
-use image_binarize::Threshold;
 use std::default::Default;
 use ansi_term::Color;
 
@@ -112,7 +113,7 @@ impl AnsiUniblock {
         }
 
         /* Convert to Windows */
-        let luma_window = luma.into_window(2, 3).unwrap();
+        let luma_window = luma.to_window(2, 3).unwrap();
 
         /* Analyze windows and convert */
         let res = self.uniblock(luma_window);
@@ -227,8 +228,7 @@ mod tests {
     #[test]
     fn test_otsu_nocolor() {
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let uniblock = AnsiUniblock::new()
                             .bold()
@@ -238,7 +238,7 @@ mod tests {
 
         println!("{:?}", uniblock);
 
-        let result = uniblock.convert(&img)
+        let result = uniblock.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -250,8 +250,7 @@ mod tests {
     fn test_otsu_fixcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let uniblock = AnsiUniblock::new()
                             .bold()
@@ -264,7 +263,7 @@ mod tests {
 
         println!("{:?}", uniblock);
 
-        let result = uniblock.convert(&img)
+        let result = uniblock.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -275,8 +274,7 @@ mod tests {
     #[test]
     fn test_manual_nocolor() {
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let uniblock = AnsiUniblock::new()
                             .bold()
@@ -286,7 +284,7 @@ mod tests {
 
         println!("{:?}", uniblock);
 
-        let result = uniblock.convert(&img)
+        let result = uniblock.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -298,8 +296,7 @@ mod tests {
     fn test_manual_fixcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let uniblock = AnsiUniblock::new()
                             .bold()
@@ -311,7 +308,7 @@ mod tests {
 
         println!("{:?}", uniblock);
 
-        let result = uniblock.convert(&img)
+        let result = uniblock.convert(&image_path)
                             .unwrap();
 
         result.print();

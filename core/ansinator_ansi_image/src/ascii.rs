@@ -1,13 +1,16 @@
+//! Representation of an image in ascii.
+
 #![allow(dead_code, unused)]
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
+use ansinator_image_window::{Windowing, RgbWindow, RgbImageWindow, GrayWindow, GrayImageWindow};
+use ansinator_ascii_font::AsciiFont;
 use image::{DynamicImage, GenericImageView};
-use image_window::{Windowing, RgbWindow, RgbImageWindow, GrayWindow, GrayImageWindow};
-use ascii_font::AsciiFont;
 use std::default::Default;
 use ansi_term::Color;
 
+/// Ascii coloring method
 #[derive(Debug, Clone, Copy)]
 pub enum AsciiColor {
     Truecolor,
@@ -21,6 +24,7 @@ impl Default for AsciiColor {
    }
 }
 
+/// Ascii convertion method 
 #[derive(Debug, Clone, Copy)]
 pub enum AsciiMode {
     Gradient,
@@ -36,34 +40,40 @@ impl Default for AsciiMode {
 pub type AnsiAscii = AnsiImage<AsciiMode, AsciiColor>;
 
 impl AnsiAscii {
+    /// Coloring with true color (RGB8)
     pub fn true_color(&self) -> Self {
         Self { color: AsciiColor::Truecolor, .. *self}
     }
+    /// Coloring with terminal colors (256 terminal color)
     pub fn terminal_color(&self) -> Self {
         Self { color: AsciiColor::Terminalcolor, .. *self}
     }
+    /// Set fixed RGB foreground
     fn set_foreground(&self, foreground: (u8,u8,u8) ) -> Self {
         Self{ has_foreground: true, foreground, color: AsciiColor::Fixed, .. *self}
     }
+    /// Set fixed RGB background 
     fn set_background(&self, background: (u8,u8,u8) ) -> Self {
         Self{ has_background: true, background, color: AsciiColor::Fixed, .. *self}
     }
 
+    /// Set unicode gradient convertion mode
     pub fn gradient(&self) -> Self {
         Self { mode: AsciiMode::Gradient, scale: (1,1), .. *self}
     }
+    /// Set ascii pattern convertion mode
     pub fn pattern(&self) -> Self {
         Self { mode: AsciiMode::Pattern, scale: (5,7), .. *self}
     } 
 
-
+    /// get appropiate color for current convertion mode
     fn get_color(&self, r: u8, g:u8, b:u8) -> ansi_term::Style {
             match self.color {
             AsciiColor::Truecolor => {
                Color::RGB(r,g,b).normal()
             },
             AsciiColor::Terminalcolor => {
-                let index = terminal_colors::TermColor::from(r, g, b)
+                let index = ansinator_terminal_colors::TermColor::from(r, g, b)
                                 .index;
                Color::Fixed(index).normal()
             },
@@ -88,6 +98,7 @@ impl AnsiAscii {
             },
         }
     }
+    /// get appropiate color along style for current convertion mode
     pub fn get_style(&self, r:u8, g:u8, b:u8) -> ansi_term::Style {
         let mut style =  self.get_color(r,g,b);
         if self.bold {
@@ -103,6 +114,7 @@ impl AnsiAscii {
         style
     }
 
+    /// Convert image file to ascii representation
     pub fn convert(&self, image_path: &str, char_set: &str) -> Result<AnsiImageResult, AnsiImageError>{
 
         /* Try opening the image */
@@ -141,9 +153,9 @@ impl AnsiAscii {
         assert_eq!(rgb.height() * self.scale.1, luma.height());
 
         /* Convert to Window */
-        let rgb_window = rgb.into_window(1, 1)
+        let rgb_window = rgb.to_window(1, 1)
                             .unwrap();
-        let luma_window = luma.into_window(self.scale.0, self.scale.1)
+        let luma_window = luma.to_window(self.scale.0, self.scale.1)
                             .unwrap();
 
         let res =
@@ -218,7 +230,7 @@ fn window_analysis(win: &GrayWindow, font_set: &Vec<AsciiFont>) -> char {
     for index in 0..font.data.len() {
         font.data[index] = win.data[index][0]; 
     }
-    let ch = ascii_font::minimize(&font, &font_set);
+    let ch = ansinator_ascii_font::minimize(&font, &font_set);
     
     ch
 }
@@ -252,19 +264,18 @@ mod tests {
     fn test_gradient_truecolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let ascii = AnsiAscii::new()
                             .bold()
                             .underline()
-                            //.true_color()
+                            .true_color()
                             .gradient()
                             .size(w, h);
 
         println!("{:?}", ascii);
 
-        let result = ascii.convert(&img, "012345789")
+        let result = ascii.convert(&image_path, "012345789")
                             .unwrap();
 
         result.print();
@@ -276,8 +287,7 @@ mod tests {
     fn test_gradient_terminalcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let ascii = AnsiAscii::new()
                             .bold()
@@ -288,7 +298,7 @@ mod tests {
 
         println!("{:?}", ascii);
 
-        let result = ascii.convert(&img, "012345789")
+        let result = ascii.convert(&image_path, "012345789")
                             .unwrap();
 
         result.print();
@@ -300,8 +310,7 @@ mod tests {
     fn test_gradient_fixedcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let ascii = AnsiAscii::new()
                             .bold()
@@ -313,7 +322,7 @@ mod tests {
 
         println!("{:?}", ascii);
 
-        let result = ascii.convert(&img, "012345789")
+        let result = ascii.convert(&image_path, "012345789")
                             .unwrap();
 
         result.print();
@@ -325,8 +334,7 @@ mod tests {
     fn test_pattern_truecolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let ascii = AnsiAscii::new()
                             .bold()
@@ -337,7 +345,7 @@ mod tests {
 
         println!("{:?}", ascii);
 
-        let result = ascii.convert(&img, "012345789")
+        let result = ascii.convert(&image_path, "012345789")
                             .unwrap();
 
         result.print();
@@ -349,8 +357,7 @@ mod tests {
     fn test_pattern_terminalcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let ascii = AnsiAscii::new()
                             .bold()
@@ -361,7 +368,7 @@ mod tests {
 
         println!("{:?}", ascii);
 
-        let result = ascii.convert(&img, "012345789")
+        let result = ascii.convert(&image_path, "012345789")
                             .unwrap();
 
         result.print();
@@ -373,8 +380,7 @@ mod tests {
     fn test_pattern_fixed() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let ascii = AnsiAscii::new()
                             .bold()
@@ -386,7 +392,7 @@ mod tests {
 
         println!("{:?}", ascii);
 
-        let result = ascii.convert(&img, "012345789")
+        let result = ascii.convert(&image_path, "012345789")
                             .unwrap();
 
         result.print();

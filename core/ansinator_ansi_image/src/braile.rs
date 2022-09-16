@@ -1,10 +1,11 @@
+//! Representation of an image in braile 8-dot.
 #![allow(dead_code, unused)]
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
+use ansinator_image_window::{Windowing, GrayWindow, GrayImageWindow};
+use ansinator_image_binarize::Threshold;
 use image::DynamicImage;
-use image_window::{Windowing, GrayWindow, GrayImageWindow};
-use image_binarize::Threshold;
 use std::default::Default;
 use ansi_term::Color;
 
@@ -112,7 +113,7 @@ impl AnsiBraile {
             luma.invert();
         }
         /* Convert to Windows */
-        let luma_window = luma.into_window(2, 4).unwrap();
+        let luma_window = luma.to_window(2, 4).unwrap();
 
         /* Analyze windows and convert */
         let res = self.braile(luma_window);
@@ -209,8 +210,7 @@ mod tests {
     #[test]
     fn test_otsu_nocolor() {
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let braile = AnsiBraile::new()
                             .bold()
@@ -220,7 +220,7 @@ mod tests {
 
         println!("{:?}", braile);
 
-        let result = braile.convert(&img)
+        let result = braile.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -232,8 +232,7 @@ mod tests {
     fn test_otsu_fixcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let braile = AnsiBraile::new()
                             .bold()
@@ -245,7 +244,7 @@ mod tests {
 
         println!("{:?}", braile);
 
-        let result = braile.convert(&img)
+        let result = braile.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -256,8 +255,7 @@ mod tests {
     #[test]
     fn test_manual_nocolor() {
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let braile = AnsiBraile::new()
                             .bold()
@@ -267,7 +265,7 @@ mod tests {
 
         println!("{:?}", braile);
 
-        let result = braile.convert(&img)
+        let result = braile.convert(&image_path)
                             .unwrap();
 
         result.print();
@@ -279,8 +277,7 @@ mod tests {
     fn test_manual_fixcolor() {
 
         let (w,h) = setup_image_size();
-        let path = setup_path();
-        let img = image::open(path).unwrap();
+        let image_path = setup_path();
 
         let braile = AnsiBraile::new()
                             .bold()
@@ -292,7 +289,7 @@ mod tests {
 
         println!("{:?}", braile);
 
-        let result = braile.convert(&img)
+        let result = braile.convert(&image_path)
                             .unwrap();
 
         result.print();

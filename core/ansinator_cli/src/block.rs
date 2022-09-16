@@ -8,8 +8,8 @@
 //! + 256 Terminal Colors coloring
 
 use crate::args::Block;
-use ansi_image::{block::AnsiBlock, ansi::Ansinator};
-use ansi_image::error::AnsiImageError;
+use ansinator_ansi_image::{block::AnsiBlock, ansi::Ansinator};
+use ansinator_ansi_image::error::AnsiImageError;
 
 //use std::error::Error;
 
