@@ -123,10 +123,6 @@ impl AnsiAscii {
             Err(e) => return Err(AnsiImageError::ImageError(e)),
         };
 
-        /* Create font set */
-        let mut font_set = char_set.chars()
-                              .map(|c| AsciiFont::from(c))
-                              .collect::<Vec<AsciiFont>>();
 
         /* Get requested size of image (without scaling!!) for later */
         let size = self.size_aspect_ratio(image.dimensions());
@@ -161,16 +157,23 @@ impl AnsiAscii {
         let res =
         match self.mode {
             AsciiMode::Gradient => {
+                let char_set = char_set.chars()
+                                    .collect::<Vec<char>>();
                 let map = luma_mapping;
-                self.color2ascii(rgb_window, luma_window, &font_set, map)
+
+                self.ascii_gradient(rgb_window, luma_window, &char_set, map)
             },
             AsciiMode::Pattern => {
+                /* Create font set */
+                let mut ascii_font_set = char_set.chars()
+                                      .map(|c| AsciiFont::from(c))
+                                      .collect::<Vec<AsciiFont>>();
                 /* Dedup font set to increase convertion speed */
-                font_set.sort_unstable();
-                font_set.dedup();
+                ascii_font_set.sort_unstable();
+                ascii_font_set.dedup();
 
                 let map = window_analysis;
-                self.color2ascii(rgb_window, luma_window, &font_set, map)
+                self.ascii_pattern(rgb_window, luma_window, &ascii_font_set, map)
             },
         };
 
@@ -179,9 +182,9 @@ impl AnsiAscii {
 
 
     /// Convert RGB image to a text representation using ansi (24-bit) true color or 256 terminal colors,
-    /// mapping the luma values of the image to the characters
-    /// in a given character set.
-    fn color2ascii<'b, G>(&self, rgb: RgbImageWindow, luma: GrayImageWindow, font_set: &Vec<AsciiFont>, map: G) -> AnsiImageResult<'b>
+    /// mapping the the pattern of a window of luma values to ascii
+    /// in a given ascii character set.
+    fn ascii_pattern<'b, G>(&self, rgb: RgbImageWindow, luma: GrayImageWindow, font_set: &Vec<AsciiFont>, map: G) -> AnsiImageResult<'b>
     where
         G: Fn(&GrayWindow, &Vec<AsciiFont>) -> char,
     {
@@ -217,6 +220,45 @@ impl AnsiAscii {
         ansi
     }
 
+    /// Convert RGB image to a text representation using ansi (24-bit) true color or 256 terminal colors,
+    /// mapping the luma values of the image to the characters
+    /// in a given character set.
+    fn ascii_gradient<'b, G>(&self, rgb: RgbImageWindow, luma: GrayImageWindow, char_set: &Vec<char>, map: G) -> AnsiImageResult<'b>
+    where
+        G: Fn(&GrayWindow, &Vec<char>) -> char,
+    {
+
+        /* Create Result */
+        let mut ansi = AnsiImageResult{ data: vec![] };
+
+        /* Create initial style for later modification */
+        let mut style = self.get_style(0,0,0);
+
+        for (rgb_rows, luma_rows) in rgb.rows().iter().zip(luma.rows()) {
+            for (rgb, luma) in rgb_rows.iter().zip(luma_rows) {
+                assert!(rgb.width == 1 && rgb.height == 1, "Just works for 1x1 windows");
+                /* Get RGB Color */
+                let rgb_pixel = rgb.get_pixel(0,0);
+                let r = rgb_pixel[0];
+                let g = rgb_pixel[1];
+                let b = rgb_pixel[2];
+
+                /* Convert to appropiate color and style */
+                style = self.get_style(r,g,b);
+
+                /* Get window character */
+                let ch = map(&luma, &char_set)
+                            .to_string();
+
+                /* Add ansi */
+                ansi.data.push(style.paint(ch));
+            }
+            ansi.data.push(style.paint("\n"));
+        }
+       
+        ansi
+    }
+
 }
 
 
@@ -239,13 +281,13 @@ fn window_analysis(win: &GrayWindow, font_set: &Vec<AsciiFont>) -> char {
 ///
 /// Linear mapping from [0-255] to [0-L], where L is the vector
 /// of chars length.
-fn luma_mapping(win: &GrayWindow, char_set: &Vec<AsciiFont>) -> char {
+fn luma_mapping(win: &GrayWindow, char_set: &Vec<char>) -> char {
     assert!(win.width == 1 && win.height == 1, "Just works for 1x1 windows");
     let p = win.get_pixel(0,0)[0];
     let len = char_set.len();
     let index = p as usize * (len - 1) / 255;
 
-    char_set[ index ].ch
+    char_set[ index ]
 }
 
 
