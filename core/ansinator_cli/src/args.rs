@@ -237,6 +237,11 @@ pub struct Block {
     pub block_mode: String,
 
 
+    /// Use bold style
+    #[clap(short = 'b', long,
+           help_heading = "ANSI STYLES",
+    )]
+    pub bold: bool,
     /// Use blink style
     #[clap(short = 'k',
            long,
@@ -255,6 +260,13 @@ pub struct Block {
     )]
     pub termcolor: bool,
 
+
+    /// Invert image colors
+    #[clap(short = 'i',
+           long = "invert",
+           help_heading = "IMAGE PROCESSING",
+    )]
+    pub invert: bool,
 
     /// Adjust the contrast of image. 
     /// Negative values decrease the contrast and positive values increase it.

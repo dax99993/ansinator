@@ -22,14 +22,13 @@ impl Block {
         let block = AnsiBlock::new();
         /* Ansi style */
         
-        /*
+        
         let block =
         if self.bold {
             block.bold()
         } else {
             block
         };
-        */
         let block = 
         if self.blink {
             block.blink()
@@ -54,6 +53,13 @@ impl Block {
         };
         /* Selected resampling filter */
         let block = block.filter(&self.filter);
+        /* Invert image colors */
+        let block = 
+        if self.invert {
+            block.invert()
+        } else {
+            block
+        };
         /* Image transformations */
         let block = block.contrast(self.contrast);
         let block = block.brighten(self.brightness);
