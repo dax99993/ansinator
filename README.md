@@ -43,9 +43,9 @@ cargo install --path .
 
 
 ## Log
-0.2.2 - Fixed convertion in braile and block, and fixed resizing.
-0.2.1 - added both GRADIENT mode with PATTERN mode in ascii, and change help message and flags.
-0.2.0 - replace GRADIENT mode with PATTERN mode in ascii.
-0.1.1 - Uniblock convertion added, and extra options as fixed foreground and background
-0.1.0 - Basic ascii, braile, block
+- 0.2.2  Fixed convertion in braile and block, and fixed resizing.
+- 0.2.1  added both GRADIENT mode with PATTERN mode in ascii, and change help message and flags.
+- 0.2.0  replace GRADIENT mode with PATTERN mode in ascii.
+- 0.1.1  Uniblock convertion added, and extra options as fixed foreground and background
+- 0.1.0  Basic ascii, braile, block
 
