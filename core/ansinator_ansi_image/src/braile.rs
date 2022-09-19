@@ -3,9 +3,8 @@
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
-use ansinator_image_window::{Windowing, GrayWindow, GrayImageWindow};
 use ansinator_image_binarize::Threshold;
-use image::DynamicImage;
+use image::{DynamicImage, GrayImage};
 use std::default::Default;
 use ansi_term::Color;
 
@@ -112,17 +111,13 @@ impl AnsiBraile {
         if self.invert {
             luma.invert();
         }
-        /* Convert to Windows */
-        let luma_window = luma.to_window(2, 4).unwrap();
 
         /* Analyze windows and convert */
-        let res = self.braile(luma_window);
+        let res = self.braile(luma);
         Ok(res)
     }
 
-    /// Convert Gray image to a text representation using ansi (24-bit) true color or 256 terminal colors,
-    /// using braile characters.
-    fn braile<'b>(&self, luma: GrayImageWindow) -> AnsiImageResult<'b> {
+    fn braile<'b>(&self, luma: GrayImage) -> AnsiImageResult<'b> {
 
         /* Create Result */
         let mut ansi = AnsiImageResult{ data: vec![] };
@@ -130,10 +125,15 @@ impl AnsiBraile {
         /* Convert to appropiate color and style */
         let style = self.get_style();
 
-        for luma_rows in luma.rows().iter() {
-            for luma in luma_rows.iter() {
+        /* Get image dimensions */
+        let width = luma.width();
+        let height = luma.height();
+
+        for y in (0..height).step_by(4) {
+            for x in (0..width).step_by(2) {
+
                 /* Get window character */
-                let ch = window_analysis(luma)
+                let ch = window_analysis(&luma, x,y)
                             .to_string();
 
                 /* Add ansi */
@@ -167,22 +167,18 @@ impl AnsiBraile {
 ///
 /// Each position represents a bit in a byte in little-endian order.
 ///
-pub fn window_analysis(win: &GrayWindow) -> char {
-    //assert(win.width == 2 && win.height == 4, "Just works for 2x4 windows") */
-
+pub fn window_analysis(luma: &GrayImage, x: u32, y:u32) -> char {
     let mut count = 0;
-    count += (win.get_pixel(0, 0)[0] / 255) << 0;
-    count += (win.get_pixel(0, 1)[0] / 255) << 1;
-    count += (win.get_pixel(0, 2)[0] / 255) << 2;
-    count += (win.get_pixel(1, 0)[0] / 255) << 3;
-    count += (win.get_pixel(1, 1)[0] / 255) << 4;
-    count += (win.get_pixel(1, 2)[0] / 255) << 5;
-    count += (win.get_pixel(0, 3)[0] / 255) << 6;
-    count += (win.get_pixel(1, 3)[0] / 255) << 7;
+    count += (luma.get_pixel(x+0, y+0)[0] / 255) << 0;
+    count += (luma.get_pixel(x+0, y+1)[0] / 255) << 1;
+    count += (luma.get_pixel(x+0, y+2)[0] / 255) << 2;
+    count += (luma.get_pixel(x+1, y+0)[0] / 255) << 3;
+    count += (luma.get_pixel(x+1, y+1)[0] / 255) << 4;
+    count += (luma.get_pixel(x+1, y+2)[0] / 255) << 5;
+    count += (luma.get_pixel(x+0, y+3)[0] / 255) << 6;
+    count += (luma.get_pixel(x+1, y+3)[0] / 255) << 7;
 
-    let ch = get_braile(count);
-
-    ch
+    get_braile(count)
 }
 
 /// Get the braile 8-dot character by means of the unicode offset
@@ -191,7 +187,6 @@ pub fn window_analysis(win: &GrayWindow) -> char {
 /// and each variation is an offset from the base address
 /// 
 fn get_braile(offset: u8) -> char {
-
     std::char::from_u32(offset as u32 + 0x2800).unwrap()
 }
 
@@ -201,10 +196,10 @@ mod tests {
     use super::*;
 
     fn setup_image_size() -> (u32, u32) {
-        return (120,40)
+        return (100,40)
     }
     fn setup_path() -> String {
-        "../images/pic3.webp".to_string()
+        "../images/pic1.jpg".to_string()
     }
     
     #[test]
@@ -216,6 +211,9 @@ mod tests {
                             .bold()
                             .underline()
                             .otsu_threshold()
+                            .contrast(50)
+                            .brighten(30)
+                            .set_foreground((255,120,180))
                             .size(w, h);
 
         println!("{:?}", braile);

@@ -3,9 +3,8 @@
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
-use ansinator_image_window::{Windowing, GrayWindow, GrayImageWindow};
 use ansinator_image_binarize::Threshold;
-use image::DynamicImage;
+use image::{DynamicImage, GrayImage};
 use std::default::Default;
 use ansi_term::Color;
 
@@ -112,28 +111,27 @@ impl AnsiUniblock {
             luma.invert();
         }
 
-        /* Convert to Windows */
-        let luma_window = luma.to_window(2, 3).unwrap();
-
         /* Analyze windows and convert */
-        let res = self.uniblock(luma_window);
+        let res = self.uniblock(luma);
         Ok(res)
     }
 
     /// Convert Gray image to a text representation using ansi (24-bit) true color or 256 terminal colors,
     /// using sextant characters.
-    fn uniblock<'b>(&self, luma: GrayImageWindow) -> AnsiImageResult<'b> {
+    fn uniblock<'b>(&self, luma: GrayImage) -> AnsiImageResult<'b> {
 
         /* Create Result */
         let mut ansi = AnsiImageResult{ data: vec![] };
 
-        /* Convert to appropiate color and style */
         let style = self.get_style();
 
-        for luma_rows in luma.rows().iter() {
-            for luma in luma_rows.iter() {
+        let width = luma.width();
+        let height = luma.height();
+
+        for y in (0..height).step_by(self.scale.1 as usize) {
+            for x in (0..width).step_by(self.scale.0 as usize) {
                 /* Get window character */
-                let ch = window_analysis(luma)
+                let ch = window_analysis(&luma, x, y)
                             .to_string();
 
                 /* Add ansi */
@@ -167,20 +165,16 @@ impl AnsiUniblock {
 ///
 ///  Each position represents a bit in a byte in little-endian order
 ///
-fn window_analysis(win: &GrayWindow) -> char {
-    //assert(win.width == 2 && win.height == 3, "Just works for 2x3 windows") */
-
+fn window_analysis(win: &GrayImage, x:u32, y:u32) -> char {
     let mut count = 0;
-    count += (win.get_pixel(0, 0)[0] / 255) << 0;
-    count += (win.get_pixel(1, 0)[0] / 255) << 1;
-    count += (win.get_pixel(0, 1)[0] / 255) << 2;
-    count += (win.get_pixel(1, 1)[0] / 255) << 3;
-    count += (win.get_pixel(0, 2)[0] / 255) << 4;
-    count += (win.get_pixel(1, 2)[0] / 255) << 5;
+    count += (win.get_pixel(x+0, y+0)[0] / 255) << 0;
+    count += (win.get_pixel(x+1, y+0)[0] / 255) << 1;
+    count += (win.get_pixel(x+0, y+1)[0] / 255) << 2;
+    count += (win.get_pixel(x+1, y+1)[0] / 255) << 3;
+    count += (win.get_pixel(x+0, y+2)[0] / 255) << 4;
+    count += (win.get_pixel(x+1, y+2)[0] / 255) << 5;
 
-    let ch = get_sextant(count);
-    
-    ch
+    get_sextant(count)
 }
 
 /// Get the unicode block sextant character by means of the unicode offset

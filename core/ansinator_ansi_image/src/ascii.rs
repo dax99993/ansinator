@@ -4,9 +4,8 @@
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
-use ansinator_image_window::{Windowing, RgbWindow, RgbImageWindow, GrayWindow, GrayImageWindow};
 use ansinator_ascii_font::AsciiFont;
-use image::{DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, RgbImage, GrayImage};
 use std::default::Default;
 use ansi_term::Color;
 
@@ -148,20 +147,13 @@ impl AnsiAscii {
         assert_eq!(rgb.width() * self.scale.0, luma.width());
         assert_eq!(rgb.height() * self.scale.1, luma.height());
 
-        /* Convert to Window */
-        let rgb_window = rgb.to_window(1, 1)
-                            .unwrap();
-        let luma_window = luma.to_window(self.scale.0, self.scale.1)
-                            .unwrap();
-
         let res =
         match self.mode {
             AsciiMode::Gradient => {
                 let char_set = char_set.chars()
                                     .collect::<Vec<char>>();
-                let map = luma_mapping;
 
-                self.ascii_gradient(rgb_window, luma_window, &char_set, map)
+                self.ascii_gradient(rgb, luma, &char_set)
             },
             AsciiMode::Pattern => {
                 /* Create font set */
@@ -172,8 +164,7 @@ impl AnsiAscii {
                 ascii_font_set.sort_unstable();
                 ascii_font_set.dedup();
 
-                let map = window_analysis;
-                self.ascii_pattern(rgb_window, luma_window, &ascii_font_set, map)
+                self.ascii_pattern(rgb, luma, &ascii_font_set)
             },
         };
 
@@ -184,22 +175,21 @@ impl AnsiAscii {
     /// Convert RGB image to a text representation using ansi (24-bit) true color or 256 terminal colors,
     /// mapping the the pattern of a window of luma values to ascii
     /// in a given ascii character set.
-    fn ascii_pattern<'b, G>(&self, rgb: RgbImageWindow, luma: GrayImageWindow, font_set: &Vec<AsciiFont>, map: G) -> AnsiImageResult<'b>
-    where
-        G: Fn(&GrayWindow, &Vec<AsciiFont>) -> char,
-    {
-
+    fn ascii_pattern<'b>(&self, rgb: RgbImage, luma: GrayImage, font_set: &Vec<AsciiFont>) -> AnsiImageResult<'b> {
         /* Create Result */
         let mut ansi = AnsiImageResult{ data: vec![] };
 
         /* Create initial style for later modification */
         let mut style = self.get_style(0,0,0);
 
-        for (rgb_rows, luma_rows) in rgb.rows().iter().zip(luma.rows()) {
-            for (rgb, luma) in rgb_rows.iter().zip(luma_rows) {
-                assert!(rgb.width == 1 && rgb.height == 1, "Just works for 1x1 windows");
+        /* Get image dimensions */
+        let width = rgb.width();
+        let height = rgb.height();
+
+        for y in (0..height) {
+            for x in (0..width) {
                 /* Get RGB Color */
-                let rgb_pixel = rgb.get_pixel(0,0);
+                let rgb_pixel = rgb.get_pixel(x+0,y+0);
                 let r = rgb_pixel[0];
                 let g = rgb_pixel[1];
                 let b = rgb_pixel[2];
@@ -208,7 +198,7 @@ impl AnsiAscii {
                 style = self.get_style(r,g,b);
 
                 /* Get window character */
-                let ch = map(&luma, &font_set)
+                let ch = window_analysis(&luma, x, y, &font_set)
                             .to_string();
 
                 /* Add ansi */
@@ -223,10 +213,7 @@ impl AnsiAscii {
     /// Convert RGB image to a text representation using ansi (24-bit) true color or 256 terminal colors,
     /// mapping the luma values of the image to the characters
     /// in a given character set.
-    fn ascii_gradient<'b, G>(&self, rgb: RgbImageWindow, luma: GrayImageWindow, char_set: &Vec<char>, map: G) -> AnsiImageResult<'b>
-    where
-        G: Fn(&GrayWindow, &Vec<char>) -> char,
-    {
+    fn ascii_gradient<'b>(&self, rgb: RgbImage, luma: GrayImage, char_set: &Vec<char>) -> AnsiImageResult<'b> {
 
         /* Create Result */
         let mut ansi = AnsiImageResult{ data: vec![] };
@@ -234,11 +221,14 @@ impl AnsiAscii {
         /* Create initial style for later modification */
         let mut style = self.get_style(0,0,0);
 
-        for (rgb_rows, luma_rows) in rgb.rows().iter().zip(luma.rows()) {
-            for (rgb, luma) in rgb_rows.iter().zip(luma_rows) {
-                assert!(rgb.width == 1 && rgb.height == 1, "Just works for 1x1 windows");
+        /* Get image dimensions */
+        let width = rgb.width();
+        let height = rgb.height();
+
+        for y in (0..height) {
+            for x in (0..width) {
                 /* Get RGB Color */
-                let rgb_pixel = rgb.get_pixel(0,0);
+                let rgb_pixel = rgb.get_pixel(x+0,y+0);
                 let r = rgb_pixel[0];
                 let g = rgb_pixel[1];
                 let b = rgb_pixel[2];
@@ -247,7 +237,7 @@ impl AnsiAscii {
                 style = self.get_style(r,g,b);
 
                 /* Get window character */
-                let ch = map(&luma, &char_set)
+                let ch = luma_mapping(&luma, x, y, &char_set)
                             .to_string();
 
                 /* Add ansi */
@@ -266,24 +256,25 @@ impl AnsiAscii {
 ///
 /// Perform a windowing analysis of the image with 5x7 windows, and 
 /// calculate best fitting character from available vector of AsciiFont.
-fn window_analysis(win: &GrayWindow, font_set: &Vec<AsciiFont>) -> char {
-    assert!(win.width == 5 && win.height == 7, "Just works for 5x7 windows");
+fn window_analysis(win: &GrayImage, x:u32, y:u32, font_set: &Vec<AsciiFont>) -> char {
     let mut font = AsciiFont::default();
-    for index in 0..font.data.len() {
-        font.data[index] = win.data[index][0]; 
+    for j in 0..7 {
+        for i in 0..5 {
+            let index = j*5 + i;
+            /* Grayimage is 5:7 to rgb image (x,y) coords */
+            font.data[index] = win.get_pixel(5*x + i as u32, 7*y + j as u32)[0]; 
+        }
     }
-    let ch = ansinator_ascii_font::minimize(&font, &font_set);
     
-    ch
+    ansinator_ascii_font::minimize(&font, &font_set)
 }
 
 /// Map a luma value to a character in a vector of char
 ///
 /// Linear mapping from [0-255] to [0-L], where L is the vector
 /// of chars length.
-fn luma_mapping(win: &GrayWindow, char_set: &Vec<char>) -> char {
-    assert!(win.width == 1 && win.height == 1, "Just works for 1x1 windows");
-    let p = win.get_pixel(0,0)[0];
+fn luma_mapping(luma: &GrayImage, x:u32, y:u32, char_set: &Vec<char>) -> char {
+    let p = luma.get_pixel(x+0,y+0)[0];
     let len = char_set.len();
     let index = p as usize * (len - 1) / 255;
 

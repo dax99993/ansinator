@@ -306,15 +306,17 @@ mod tests {
         let scale_w = 13;
         let scale_h = 7;
         
-        let img = image::open("../images/pic1.jpg").unwrap()
+        let img = image::open("../../tests/images/pic1.jpg").unwrap()
                     .resize_exact(w*scale_w, h*scale_h, image::imageops::Nearest)
                     .into_luma8();
 
-        let imgw = img.to_window(w, h).unwrap();
+        let imgw = img.to_window_exact(w, h).unwrap();
 
-        let firsts = imgw.windows.iter().
-                        map(|w| w.get_pixel(0, 0)[0]).collect::<Vec<u8>>();
-        println!("{:?}", firsts);
+        let rows = imgw.rows();
+        println!("{:?}", rows);
+        println!("rows len = {:?}", rows.len());
+        println!("col len {:?}", rows[5].len());
+        println!("win len {:?}", rows[0][0].data.len());
 
         //assert_eq!(total as u32, (scale_w-1)*(scale_h-1) - 1);
     }

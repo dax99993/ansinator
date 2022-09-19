@@ -3,8 +3,7 @@
 
 use crate::ansi::{AnsiImage, AnsiImageResult, Ansinator};
 use crate::error::AnsiImageError;
-use image::{DynamicImage, GenericImageView};
-use ansinator_image_window::{Windowing, RgbImageWindow};
+use image::{DynamicImage, GenericImageView, RgbImage};
 use std::default::Default;
 use ansi_term::Color;
 
@@ -101,12 +100,10 @@ impl AnsiBlock {
         let res =
         match self.mode {
             BlockMode::Half => {
-                let rgb_window = rgb.to_window(1, 2).unwrap();
-                self.convertion_half(rgb_window)
+                self.convertion_half(rgb)
             },
             BlockMode::Whole => {
-                let rgb_window = rgb.to_window(1, 1).unwrap();
-                self.convertion_whole(rgb_window)
+                self.convertion_whole(rgb)
             },
         };
         Ok(res)
@@ -114,18 +111,21 @@ impl AnsiBlock {
 
     /// Convert RGB image to a text representation using ansi (24-bit) true color or 256 terminal colors,
     /// with a proportion of 1:1 image pixel : ansi character
-    fn convertion_whole<'b>(&self, rgb: RgbImageWindow) -> AnsiImageResult<'b> {
+    fn convertion_whole<'b>(&self, rgb: RgbImage) -> AnsiImageResult<'b> {
         /* Create Result */
         let mut ansi = AnsiImageResult{ data: vec![] };
 
         /* Convert to appropiate color and style */
         let mut style = self.get_style(0,0,0,0,0,0);
 
-        for rgb_rows in rgb.rows().iter() {
+        /* Get image dimensions */
+        let width = rgb.width();
+        let height = rgb.height();
 
-            for rgb in rgb_rows.iter() {
+        for y in (0..height).step_by(self.scale.1 as usize) {
+            for x in (0..width).step_by(self.scale.0 as usize) {
                 /* Get RGB Color */
-                let rgb_pixel = rgb.get_pixel(0,0);
+                let rgb_pixel = rgb.get_pixel(x+0,y+0);
                 let r = rgb_pixel[0];
                 let g = rgb_pixel[1];
                 let b = rgb_pixel[2];
@@ -146,7 +146,7 @@ impl AnsiBlock {
 
     /// Convert RGB image to a text representation using ansi (24-bit) true color or 256 terminal colors,
     /// with a proportion of 1:2 image width : image height for each ansi char
-    fn convertion_half<'b>(&self, rgb: RgbImageWindow) -> AnsiImageResult<'b> {
+    fn convertion_half<'b>(&self, rgb: RgbImage) -> AnsiImageResult<'b> {
         let upper_block = "\u{2580}";
         /* Create Result */
         let mut ansi = AnsiImageResult{ data: vec![] };
@@ -154,15 +154,19 @@ impl AnsiBlock {
         /* Create initial style for later modification */
         let mut style = self.get_style(0,0,0,0,0,0);
 
-        for rgb_rows in rgb.rows().iter() {
-            for rgb in rgb_rows.iter() {
+        /* Get image dimensions */
+        let width = rgb.width();
+        let height = rgb.height();
+
+        for y in (0..height).step_by(self.scale.1 as usize) {
+            for x in (0..width).step_by(self.scale.0 as usize) {
                 /* Get RGB Color */
-                let rgb_pixel = rgb.get_pixel(0,0);
+                let rgb_pixel = rgb.get_pixel(x+0,y+0);
                 let r = rgb_pixel[0];
                 let g = rgb_pixel[1];
                 let b = rgb_pixel[2];
 
-                let lower_rgb_pixel = rgb.get_pixel(0,1);
+                let lower_rgb_pixel = rgb.get_pixel(x+0,y+1);
                 let br = lower_rgb_pixel[0];
                 let bg = lower_rgb_pixel[1];
                 let bb = lower_rgb_pixel[2];
