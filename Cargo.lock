@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "ansinator"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "ansinator_ansi_image",
  "clap",
@@ -27,7 +27,7 @@ dependencies = [
 
 [[package]]
 name = "ansinator_ansi_image"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ansi_term",
  "ansinator_ascii_font",
