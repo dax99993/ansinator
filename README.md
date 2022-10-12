@@ -44,30 +44,33 @@ cargo install --path .
 ## Compatibility
 This application was design to work in any unicode terminal but the result might look different
 depending on the terminal font and settings.
-Testing has been performn only on Alacritty, Kitty and ST,
+Testing has been performed only on Alacritty, Kitty, ST and rxvt-unicode,
 using the JetBrains Mono font.
 #### Ascii
 Probably will work for all terminals
--- Alacritty working
--- Kitty working
--- ST working
+- Alacritty working
+- Kitty working
+- ST working
+- rxvt-unicode working except for truecolor, use terminalcolor instead
 #### Braile
 Probably will work on all terminals supporting Unicode Glyphs
--- Alacritty working but background color might extend
--- Kitty working
--- ST working
+- Alacritty working
+- Kitty working
+- ST working
+- rxvt-unicode working
 #### Block
 Probably will work on all terminals supporting Unicode Glyphs
--- Alacritty working
--- Kitty working
--- ST working
+- Alacritty working
+- Kitty working
+- ST working
+- rxvt-unicode working except for truecolor, use terminalcolor instead
 #### Uniblock 
 Probably will work on all terminals supporting Unicode Glyphs, but it also depends 
 on the way the terminal handles sextant characters. 
--- Alacritty working but might look weird depending on the x,y offset and the font 
--- Kitty working
--- Alacritty works but might look weird depending on the x,y offset and the font 
--- rxvt-unicode not working missing sextant characters (might be a misconfiguration of my part of the fonts)
+- Alacritty working but might look weird depending on the x,y character offset and the font 
+- Kitty working
+- ST working but might look weird depending on the x,y character offset and the font 
+- rxvt-unicode not working missing sextant characters (might be a misconfiguration of my part of the fonts)
 
 ## Bugs
 If find any bug or weird behaviour send an email to <b>dax99993@gmail.com</b>
