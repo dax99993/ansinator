@@ -82,7 +82,8 @@ impl AnsiAscii {
                         ansi_term::Style::new()
                     },
                     (false, true) => {
-                        Color::RGB(0,0,0).on(Color::RGB(r,g,b))
+                        let (br, bg, bb) = self.background;
+                        Color::RGB(0,0,0).on(Color::RGB(br,bg,bb))
                     },
                     (true, false) => {
                         let (r, g, b) = self.foreground;
@@ -181,6 +182,7 @@ impl AnsiAscii {
 
         /* Create initial style for later modification */
         let mut style = self.get_style(0,0,0);
+        let style_normal = ansi_term::Style::new();
 
         /* Get image dimensions */
         let width = rgb.width();
@@ -204,7 +206,7 @@ impl AnsiAscii {
                 /* Add ansi */
                 ansi.data.push(style.paint(ch));
             }
-            ansi.data.push(style.paint("\n"));
+            ansi.data.push(style_normal.paint("\n"));
         }
        
         ansi
@@ -220,6 +222,7 @@ impl AnsiAscii {
 
         /* Create initial style for later modification */
         let mut style = self.get_style(0,0,0);
+        let style_normal = ansi_term::Style::new();
 
         /* Get image dimensions */
         let width = rgb.width();
@@ -227,15 +230,6 @@ impl AnsiAscii {
 
         for y in (0..height) {
             for x in (0..width) {
-                /* Get RGB Color */
-                let rgb_pixel = rgb.get_pixel(x+0,y+0);
-                let r = rgb_pixel[0];
-                let g = rgb_pixel[1];
-                let b = rgb_pixel[2];
-
-                /* Convert to appropiate color and style */
-                style = self.get_style(r,g,b);
-
                 /* Get window character */
                 let ch = luma_mapping(&luma, x, y, &char_set)
                             .to_string();
@@ -243,7 +237,7 @@ impl AnsiAscii {
                 /* Add ansi */
                 ansi.data.push(style.paint(ch));
             }
-            ansi.data.push(style.paint("\n"));
+            ansi.data.push(style_normal.paint("\n"));
         }
        
         ansi

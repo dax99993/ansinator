@@ -41,8 +41,39 @@ cargo install --path .
 ## License
 [MIT](https://mit-license.org/)
 
+## Compatibility
+This application was design to work in any unicode terminal but the result might look different
+depending on the terminal font and settings.
+Testing has been performn only on Alacritty, Kitty and ST,
+using the JetBrains Mono font.
+#### Ascii
+Probably will work for all terminals
+-- Alacritty working
+-- Kitty working
+-- ST working
+#### Braile
+Probably will work on all terminals supporting Unicode Glyphs
+-- Alacritty working but background color might extend
+-- Kitty working
+-- ST working
+#### Block
+Probably will work on all terminals supporting Unicode Glyphs
+-- Alacritty working
+-- Kitty working
+-- ST working
+#### Uniblock 
+Probably will work on all terminals supporting Unicode Glyphs, but it also depends 
+on the way the terminal handles sextant characters. 
+-- Alacritty working but might look weird depending on the x,y offset and the font 
+-- Kitty working
+-- Alacritty works but might look weird depending on the x,y offset and the font 
+-- rxvt-unicode not working missing sextant characters (might be a misconfiguration of my part of the fonts)
+
+## Bugs
+If find any bug or weird behaviour send an email to <b>dax99993@gmail.com</b>
 
 ## Log
+- 0.2.3  Fixed bug in fixed background color for ascii, braile and uniblock, also fixed background color extension to end of line on some terminals.
 - 0.2.2  Fixed convertion in braile and block, and fixed resizing.
 - 0.2.1  added both GRADIENT mode with PATTERN mode in ascii, and change help message and flags.
 - 0.2.0  replace GRADIENT mode with PATTERN mode in ascii.

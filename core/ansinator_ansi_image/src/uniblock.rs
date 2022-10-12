@@ -51,7 +51,7 @@ impl AnsiUniblock {
                         ansi_term::Style::new()
                     },
                     (false, true) => {
-                        Color::RGB(0,0,0).on(Color::RGB(r,g,b))
+                        Color::RGB(0,0,0).on(Color::RGB(br,bg,bb))
                     },
                     (true, false) => {
                         let (r, g, b) = self.foreground;
@@ -124,6 +124,7 @@ impl AnsiUniblock {
         let mut ansi = AnsiImageResult{ data: vec![] };
 
         let style = self.get_style();
+        let style_normal = ansi_term::Style::new();
 
         let width = luma.width();
         let height = luma.height();
@@ -137,7 +138,7 @@ impl AnsiUniblock {
                 /* Add ansi */
                 ansi.data.push(style.paint(ch));
             }
-            ansi.data.push(style.paint("\n"));
+            ansi.data.push(style_normal.paint("\n"));
         }
        
         ansi

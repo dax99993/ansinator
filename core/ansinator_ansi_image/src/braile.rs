@@ -52,7 +52,7 @@ impl AnsiBraile {
                         ansi_term::Style::new()
                     },
                     (false, true) => {
-                        Color::RGB(0,0,0).on(Color::RGB(r,g,b))
+                        Color::RGB(0,0,0).on(Color::RGB(br,bg,bb))
                     },
                     (true, false) => {
                         let (r, g, b) = self.foreground;
@@ -139,7 +139,8 @@ impl AnsiBraile {
                 /* Add ansi */
                 ansi.data.push(style.paint(ch));
             }
-            ansi.data.push(style.paint("\n"));
+            let style_normal = ansi_term::Style::new();
+            ansi.data.push(style_normal.paint("\n"));
         }
        
         ansi

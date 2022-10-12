@@ -117,6 +117,7 @@ impl AnsiBlock {
 
         /* Convert to appropiate color and style */
         let mut style = self.get_style(0,0,0,0,0,0);
+        let style_normal = ansi_term::Style::new();
 
         /* Get image dimensions */
         let width = rgb.width();
@@ -138,7 +139,7 @@ impl AnsiBlock {
                 /* Add ansi */
                 ansi.data.push(style.paint(ch));
             }
-            ansi.data.push(style.paint("\n"));
+            ansi.data.push(style_normal.paint("\n"));
         }
        
         ansi
@@ -153,6 +154,7 @@ impl AnsiBlock {
 
         /* Create initial style for later modification */
         let mut style = self.get_style(0,0,0,0,0,0);
+        let style_normal = ansi_term::Style::new();
 
         /* Get image dimensions */
         let width = rgb.width();
@@ -174,13 +176,12 @@ impl AnsiBlock {
                 /* Convert to appropiate color and style */
                 style = self.get_style(r,g,b,br,bg,bb);
 
-
                 let ch = upper_block.to_string();
 
                 /* Add ansi */
                 ansi.data.push(style.paint(ch));
             }
-            ansi.data.push(style.paint("\n"));
+            ansi.data.push(style_normal.paint("\n"));
         }
        
         ansi
