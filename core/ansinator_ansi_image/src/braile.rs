@@ -200,7 +200,7 @@ mod tests {
         return (100,40)
     }
     fn setup_path() -> String {
-        "../images/pic1.jpg".to_string()
+        "../../tests/images/pic1.jpg".to_string()
     }
     
     #[test]
@@ -212,7 +212,7 @@ mod tests {
                             .bold()
                             .underline()
                             .otsu_threshold()
-                            .contrast(50)
+                            .contrast(50.0)
                             .brighten(30)
                             .set_foreground((255,120,180))
                             .size(w, h);

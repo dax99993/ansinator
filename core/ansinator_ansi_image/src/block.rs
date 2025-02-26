@@ -198,7 +198,7 @@ mod tests {
         return (120,40)
     }
     fn setup_path() -> String {
-        "../images/pic2.png".to_string()
+        "../../tests/images/pic2.png".to_string()
     }
 
     

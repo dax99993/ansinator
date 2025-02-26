@@ -74,8 +74,8 @@ pub struct Ascii {
            verbatim_doc_comment,
            ignore_case = true,
            help_heading = "MODE",
-           default_value = "PATTERN",
-           value_parser = ["GRADIENT", "PATTERN", ],
+           default_value = "PATTERN_QUADRANCE",
+           value_parser = ["GRADIENT", "PATTERN_QUADRANCE", "PATTERN_SSIM", ],
     )]
     pub luma_mode: String,
     /// Use bold style

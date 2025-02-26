@@ -77,13 +77,33 @@ impl AsciiFont {
 
         s
     }
+
+    
+    fn structural_similarity(&self, font: &AsciiFont) -> f64 {
+        let dynamic_range = 255.0 ;
+        let c1 = f64::powi(0.01 * dynamic_range, 2);
+        let c2 = f64::powi(0.03 * dynamic_range, 2);
+
+        // Calculate statistical metrics
+        let ux: f64  = self.data.iter().map(|x| x.clone() as f64).sum::<f64>() / self.data.len() as f64;
+        let uy: f64  = font.data.iter().map(|x| x.clone() as f64).sum::<f64>() / font.data.len() as f64;
+
+        let covx: f64 = self.data.iter().map(|x| f64::powi(x.clone() as f64 - ux, 2)).sum::<f64>() / (self.data.len() as f64 - 1.0);
+        let covy: f64 = font.data.iter().map(|x| f64::powi(x.clone() as f64 - uy, 2)).sum::<f64>() / (font.data.len() as f64 - 1.0);
+        let covxy: f64 = self.data.iter().zip(font.data).map(|(x,y)| (x.clone() as f64 - ux) * (y.clone() as f64 - uy)).sum::<f64>() / (self.data.len() as f64 - 1.0);
+
+
+        // Simplified case formula (when c3=0.5*c2, alpha=1, beta=1, gamma=1) as shown in:
+        // https://en.wikipedia.org/wiki/Structural_similarity_index_measure
+        return (2.0 * ux * uy + c1) * (2.0 * covxy + c2) / ((ux*ux + uy*uy + c1) * (covx + covy + c2)); 
+    }
 }
 
 /// Find best AsciiFont approximation to given vector of AsciiFonts
 ///
 /// Find the AsciiFont that minimizes the asimilarity of an AsciiFont
 /// by a exahustive calculation of quadrances, return the AsciiFont which minimizes the quadrance.
-pub fn minimize(font1: &AsciiFont, font_set: &Vec<AsciiFont> ) -> char {
+pub fn minimize_quadrance(font1: &AsciiFont, font_set: &Vec<AsciiFont> ) -> char {
     let mut min = f64::MAX;
     let mut ch: char = ' ';
 
@@ -92,6 +112,27 @@ pub fn minimize(font1: &AsciiFont, font_set: &Vec<AsciiFont> ) -> char {
 
         if q < min {
             min = q;
+            ch = font.ch;
+        }
+    }
+
+    ch
+}
+
+
+/// Find best AsciiFont approximation to given vector of AsciiFonts
+///
+/// Find the AsciiFont that maximizes the structural similarity (ssim) of an AsciiFont
+/// by a exahustive calculation of ssim, return the AsciiFont which maximizes the ssim.
+pub fn maximize_structural_similarity(font1: &AsciiFont, font_set: &Vec<AsciiFont> ) -> char {
+    let mut max = -1.0; //ssim in range [-1.0, 1.0]
+    let mut ch: char = ' ';
+
+    for font in font_set {
+        let ssim = font1.structural_similarity(&font);    
+
+        if ssim > max {
+            max = ssim;
             ch = font.ch;
         }
     }
@@ -122,7 +163,7 @@ pub fn minimize(font1: &AsciiFont, font_set: &Vec<AsciiFont> ) -> char {
 /// | v6 | w6 | x6 | y6 | z6 |
 /// | v7 | w7 | x7 | y7 | z7 |
 ///
-const ASCII_FONT: [[u8; 5] ; (127-32)] = [
+const ASCII_FONT: [[u8; 5] ; 127-32] = [
     [0x00, 0x00, 0x00, 0x00, 0x00],// (space)
     [0x00, 0x00, 0x5F, 0x00, 0x00],// !
     [0x00, 0x07, 0x00, 0x07, 0x00],// "
@@ -222,6 +263,8 @@ const ASCII_FONT: [[u8; 5] ; (127-32)] = [
 
 #[cfg(test)]
 mod tests {
+    use crate::{maximize_structural_similarity, minimize_quadrance};
+
     use super::AsciiFont;
 
     #[test]
@@ -251,5 +294,65 @@ mod tests {
         let q2 = f1.quadrance(&f3);
 
         assert!(q1-q2 > 0.0);
+    }
+
+    #[test]
+    fn font_quadrance_minimization() {
+        let f1 = AsciiFont::from('.');
+        let f2 = AsciiFont::from('#');
+        let f3 = AsciiFont::from(',');
+        let f4 = AsciiFont::from('?');
+
+        let fontset : Vec::<AsciiFont> = vec![f2, f3, f4];
+
+        let closest_ch = minimize_quadrance(&f1, &fontset);
+
+        assert_eq!(closest_ch, ',');
+    }
+
+    #[test]
+    fn ssim_equal() {
+        let f1 = AsciiFont::from('a');
+        let f2 = AsciiFont::from('a');
+
+        let abs_difference = (f1.structural_similarity(&f2) - 1.0).abs();
+        println!("Structural Similarity = {:?}", abs_difference);
+        assert!(abs_difference <= f64::EPSILON)
+    }
+
+    #[test]
+    fn ssim_non_equal() {
+        let f1 = AsciiFont::from('a');
+        let f2 = AsciiFont::from('A');
+
+        let ssim = (f1.structural_similarity(&f2) - 1.0).abs();
+        assert!(f64::abs(ssim) >= 0.0);
+    }
+
+    #[test]
+    fn ssim_size_comparison() {
+        let f1 = AsciiFont::from('B');
+        let f2 = AsciiFont::from('8');
+        let f3 = AsciiFont::from('.');
+
+        let ssim1 = f64::abs(f1.structural_similarity(&f2));
+        /* More similar fonts, hence smaller value */
+        let ssim2 = f64::abs(f1.structural_similarity(&f3));
+
+        assert!(ssim1-ssim2 > 0.0);
+    }
+
+    #[test]
+    fn font_ssim_maximization() {
+        let f1 = AsciiFont::from('B');
+        let f2 = AsciiFont::from('.');
+        let f3 = AsciiFont::from('8');
+        let f4 = AsciiFont::from('|');
+
+        let fontset : Vec::<AsciiFont> = vec![f2, f3, f4];
+
+        let closest_ch = maximize_structural_similarity(&f1, &fontset);
+
+        assert_eq!(closest_ch, '8');
     }
 }

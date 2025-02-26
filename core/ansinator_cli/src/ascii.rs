@@ -98,8 +98,9 @@ impl Ascii {
         let ascii = 
         match &self.luma_mode[..] {
             "GRADIENT" => ascii.gradient(),
-            "PATTERN" =>  ascii.pattern(),
-            _ =>  ascii.pattern(),
+            "PATTERN_QUADRANCE" =>  ascii.pattern_quadrance(),
+            "PATTERN_SSIM" =>  ascii.pattern_ssim(),
+            _ =>  ascii.pattern_quadrance(),
         };
 
 
